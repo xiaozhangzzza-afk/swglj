@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="收容被世界遗忘之物。中文诡异解谜、调查与增量经营游戏。">
+  <title>失物管理局 · 请勿寻找自己</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23141f22'/%3E%3Cpath d='M10 12h20v19H10zM16 12V7h8v5M16 21h8' fill='none' stroke='%23dfbd7c' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="dossier.css">
+  <script defer src="engine.js"></script><script defer src="cases.js"></script><script defer src="exploration.js"></script><script defer src="depth.js"></script><script defer src="app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="失物管理局 首页"><span class="brand-mark">失</span><span>失物管理局<small>LOST PROPERTY BUREAU</small></span></a>
+      <div class="office-label"><span>保管单位 / 009</span><span id="era-label">第 1 轮</span></div>
+      <div class="index-label">卷宗目录</div><nav id="navigation" aria-label="管理局功能">
+        <button class="nav-button active" data-tab="case"><span>01</span>异常案卷<i id="case-count">0/3</i></button>
+        <button class="nav-button" data-tab="notebook"><span>02</span>调查笔记<i id="evidence-count">0</i></button>
+        <button class="nav-button" data-tab="work"><span>03</span>局内经营</button>
+        <button class="nav-button" data-tab="staff"><span>04</span>员工与方针</button>
+        <button class="nav-button" data-tab="research"><span>05</span>档案研究</button>
+        <button class="nav-button" data-tab="explore"><span>06</span>短程调查</button>
+        <button class="nav-button" data-tab="legacy"><span>07</span>藏品与传承</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="career"><small>调查员资历</small><strong id="level-label">Lv. 1 · 见习调查员</strong><div class="meter"><i id="xp-bar"></i></div><span id="xp-label">0 / 24 经验</span><button class="text-button" data-do="levels">查看升级奖励</button></div>
+        <p class="margin-note">所有失物都有来处。<br>有些来处不该被记起。</p>
+        <button class="settings-button" data-do="settings">存档与说明 <span>⚙</span></button>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar"><div><span class="tiny-label">值班记录</span><span id="clock">第 1 日 · 00:00</span></div><div class="topbar-actions"><span id="save-status" role="status">本地自动存档</span><button class="quiet-button" data-do="guide">玩法</button><button class="quiet-button" data-do="settings">存档</button><button class="quiet-button" data-do="pause" id="pause-button">暂停</button></div></header>
+      <div id="storage-warning" class="warning-banner" hidden></div>
+      <div id="resource-bar" class="resources" aria-label="管理局库存"></div>
+      <div class="content-grid">
+        <main id="main" tabindex="-1"></main>
+        <aside class="journal-panel" aria-label="值班日志">
+          <div class="journal-heading"><div><span class="tiny-label">ON RECORD</span><h2>值班日志</h2></div><span class="seal">已阅</span></div>
+          <div class="condition"><div><span>现实稳定</span><strong id="stability-value">90%</strong></div><div class="meter"><i id="stability-bar"></i></div><p id="stability-note">记忆越满，现实负担越重。</p></div>
+          <div class="condition compact"><div><span>员工信任</span><strong id="trust-value">70%</strong></div><div class="meter"><i id="trust-bar"></i></div></div>
+          <div id="pending-event"></div>
+          <div id="journal" class="journal"></div>
+        </aside>
+      </div>
+      <footer>失物管理局 / 档案版 0.4 <span>您的案卷留在本机 · 建议定期导出存档</span></footer>
+    </div>
+  </div>
+  <dialog id="modal"><div class="modal-top"><h2 id="modal-title"></h2><button data-do="close-modal" class="quiet-button" aria-label="关闭对话框">关闭</button></div><div id="modal-body"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <input type="file" id="import-file" accept="application/json,.json" hidden>
+  <noscript>请允许 JavaScript 运行，才能进入失物管理局。</noscript>
+</body>
+</html>
