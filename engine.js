@@ -87,7 +87,7 @@
       stability: 90, trust: 70, policy: 'preserve', artifacts: [], seen: legacy ? [...legacy.seen] : [], visits: {}, pity: 0,
       expedition: null, event: null, nextEvent: 65, cooldown: 0, logs: [], stats: { searches: 0, expeditions: 0, rare: 0, seconds: 0 },
       legacy: legacy ? { echoes: legacy.echoes, archive: legacy.archive, industry: legacy.industry, humanity: legacy.humanity } : { echoes: 0, archive: 0, industry: 0, humanity: 0 },
-      omen: 'rain', paused: false, lastSaved: Date.now(), ended: false, career: { xp: legacy && legacy.xp || 0 }, ui: { introduced: !!legacy, notebookOpened: false, walkthrough: false } };
+      omen: 'rain', paused: false, lastSaved: Date.now(), ended: false, career: { xp: legacy && legacy.xp || 0 }, ui: { introduced: !!legacy, notebookOpened: false, walkthrough: false, progressiveVersion: 1, revealed: [], operationsStarted: false } };
     Object.keys(BUILDINGS).forEach(k => s.buildings[k] = 0);
     Object.keys(JOBS).forEach(k => s.jobs[k] = 0);
     s.omen = Object.keys(OMENS)[Math.floor(random(s) * 3)];
@@ -269,7 +269,7 @@
     if (!raw.r || !raw.buildings || !Array.isArray(raw.tech)) throw new Error('存档缺少必要数据。');
     const s = fresh(bounded(raw.rng, 1, 4294967295, 123456789));
     s.career.xp = bounded(raw.career && raw.career.xp, 0, 1e8);
-    s.ui = { introduced: raw.ui && raw.ui.introduced === true, notebookOpened: raw.ui && raw.ui.notebookOpened === true, walkthrough: raw.ui && raw.ui.walkthrough === true };
+    s.ui = { introduced: raw.ui && raw.ui.introduced === true, notebookOpened: raw.ui && raw.ui.notebookOpened === true, walkthrough: raw.ui && raw.ui.walkthrough === true, progressiveVersion: raw.ui && raw.ui.progressiveVersion === 1 ? 1 : 0, revealed: Array.isArray(raw.ui && raw.ui.revealed) ? [...new Set(raw.ui.revealed.filter(k => ['notebook', 'map', 'career', 'inventory', 'work', 'staff', 'research', 'explore', 'legacy'].includes(k)))] : [], operationsStarted: raw.ui && raw.ui.operationsStarted === true };
     s.time = bounded(raw.time, 0, 1e10); s.era = Math.floor(bounded(raw.era, 1, 1e6, 1)); s.rng = Math.floor(bounded(raw.rng, 1, 4294967295, 123456789));
     for (const k of Object.keys(BUILDINGS)) s.buildings[k] = Math.floor(bounded(raw.buildings[k], 0, BUILDINGS[k].max || 30));
     s.tech = [...new Set(raw.tech.filter(k => typeof k === 'string' && Object.hasOwn(TECH, k)))];

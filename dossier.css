@@ -1,6 +1,12 @@
 /* Original archive-workbench theme. References: Ink IF Story Template and Sakura;
    no third-party CSS, fonts, scripts or artwork are incorporated. */
 :root{color-scheme:dark;--bg:#202422;--surface:#272c29;--surface2:#303731;--line:#485149;--ink:#eceee7;--muted:#b0b8ac;--gold:#d4c5a0;--green:#b3c6ae;--danger:#edb4a2;--paper:#f0f0e8;--paper-ink:#252b26;--paper-muted:#586157;--paper-line:#bac2b5}
+[hidden]{display:none!important}
+.first-observation .field-layout{display:block}
+.first-observation .field-controls{border:0;padding:0;max-width:42em}
+.first-observation .index-label,.first-observation .folio,.first-observation .margin-note,.pre-career .field-status{display:none}
+.feature-discovery{font-size:14px;line-height:1.8;color:#d2ddc3;border-bottom:1px solid #576449;padding:10px 28px;background:#303b29}
+.resources{grid-template-columns:repeat(auto-fit,minmax(115px,1fr))}
 body{background:var(--bg);line-height:1.8}
 .shell{grid-template-columns:216px minmax(0,1fr)}
 .sidebar{background:#202622;padding:28px 18px 20px;border-right:1px solid #515b50}
