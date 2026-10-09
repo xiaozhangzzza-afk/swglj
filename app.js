@@ -84,6 +84,7 @@
   }
   function walkthrough() {
     const id = state.casebook.active, c = state.casebook.cases[id], f = C.field(c);
+    if (!P.has(state, 'map')) return { title: '先观察眼前的证物', text: '点击招领须知，再观察旁边的镜子。记录两条观察后，现场地图会出现。', action: 'inspect', value: c.found.includes('notice') ? 'mirror' : 'notice' };
     if (c.solved) return { title: '体验完成', text: '你已经完成道具收集、设备修复、通路解锁与认领。可退出向导，进入下一案自由调查。' };
     if (id !== 'station') return { title: '现在由你来调查', text: '你已经学会移动、拿取、使用道具和记录证物。这一案不再高亮正确门或开关；先观察现场，必要时主动查看分级提示。' };
     if (c.room === 'bench' && !f.flags.includes('opened') && !f.items.includes('pin') && !f.items.includes('fuse')) return { title: '先选择一条进入路线', text: '取保险丝：修电后找钥匙，比较安全。取发夹：从镜后绕入，稳定度会损失 2 点，但能看到不同现场。两条路都能通关，也能稍后探索另一条。', action: 'choose-route' };
