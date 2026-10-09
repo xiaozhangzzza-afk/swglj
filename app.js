@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const B = window.Bureau, C = window.Cases, P = window.Progression;
+  const B = window.Bureau, C = window.Cases, P = window.Progression, H = window.BureauHelp;
   const params = new URLSearchParams(location.search), testSlot = (params.get('slot') || '').replace(/[^a-z0-9-]/gi, '').slice(0, 40);
   const KEY = 'lost-property-bureau-v1' + (params.get('test') === '1' ? '-test' + (testSlot ? '-' + testSlot : '') : ''), BACKUP = KEY + '-backup', LEASE = KEY + '-lease';
   const session = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random();
@@ -45,6 +45,25 @@
   }
   function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 4300); }
   function modal(title, body) { $('modal-title').textContent = title; $('modal-body').innerHTML = body; if (!$('modal').open) $('modal').showModal(); }
+  function helpResults(query = '') {
+    const results = H.search(query);
+    $('help-results').innerHTML = '<p class="progress-label">' + (query.trim() ? '找到 ' + results.length + ' 条说明' : '你可能想问') + '</p>' + (results.length ? results.map(e => button(esc(e.question), 'help-question', e.id, null, 'secondary')).join('') : '<p>暂时没有对应说明。试试“经验”“道具”“存档”或“实验”。</p>');
+  }
+  function showHelp() {
+    modal('查阅玩法', '<div class="help-search"><label for="help-query">搜索玩法问题</label><input type="search" id="help-query" maxlength="80" placeholder="例如：经验、道具、存档" autocomplete="off"><div id="help-results"></div><section id="help-answer" aria-live="polite"></section><small>本机说明检索 · 不联网 · 不自动泄露谜底</small></div>');
+    helpResults(); $('help-query').focus();
+  }
+  function showHelpAnswer(id) {
+    const entry = H.entries.find(e => e.id === id); if (!entry || !$('help-answer')) return;
+    const context = id === 'next' ? '此刻的目标：' + (P.has(state, 'map') ? C.objective(state) : '观察大厅的招领须知，再查看旁边的镜子。') : '';
+    $('help-answer').innerHTML = '<h3>' + esc(entry.question) + '</h3><p>' + esc(entry.answer) + '</p>' + (context ? '<p class="hint-note">' + esc(context) + '</p>' : '');
+  }
+  function experimentRecord(controls = false) {
+    if (state.casebook.active !== 'station') return '';
+    const actions = controls ? C.actions(state).filter(a => a.group === 'experiment') : [], records = C.experiments(state);
+    if (!actions.length && !records.length) return '';
+    return '<details class="experiment-record"><summary>现场验证 · 可选' + (records.length ? ' / 已记录 ' + records.length + ' 次' : '') + '</summary><p>改变现场条件，再比较结果。实验不加经验，不影响结案。</p>' + actions.map(a => a.done ? '<p>✓ ' + esc(a.label) + '</p>' : '<div>' + button(esc(a.label), 'interact', a.id, null, 'secondary') .replace('data-do=', (a.reason ? 'disabled ' : '') + 'data-do=') + (a.reason ? '<small class="action-requirement">' + esc(a.reason) + '</small>' : '') + '</div>').join('') + records.map(r => '<article><strong>' + esc(r.label) + '</strong><p>' + esc(r.record) + '</p></article>').join('') + '</details>';
+  }
   function costs(cost) { return Object.entries(cost).map(([k, v]) => '<span data-material="' + k + '" data-needed="' + v + '" class="' + (state.r[k] + 1e-8 < v ? 'shortage' : '') + '">' + B.RES[k].name + ' ' + v + '</span>').join(' · '); }
   function button(label, action, value = '', cost = null, extra = '') { return '<button class="button ' + extra + '" data-do="' + action + '" data-value="' + esc(value) + '"' + (cost ? ' data-cost="' + esc(JSON.stringify(cost)) + '"' : '') + '>' + label + '</button>'; }
   function heading(title, desc, label = 'BUREAU / 009') { return '<div class="page-heading"><div><span class="tiny-label">' + label + '</span><h1>' + title + '</h1><p>' + desc + '</p></div><div class="folio">案卷 ' + state.era.toString().padStart(3, '0') + '<br>保管中</div></div>'; }
@@ -114,7 +133,8 @@
     html += '<div class="room-nav field-room-nav" aria-label="现场地图">' + Object.entries(d.rooms).filter(([k]) => !C.blocked(state, k)).map(([k, r]) => { const reason = C.blocked(state, k), adjacent = C.LINKS[c.room].includes(k); return '<button data-do="room" data-value="' + k + '" class="' + (c.room === k ? 'active' : '') + ' ' + (state.ui.walkthrough && help.action === 'room' && help.value === k ? 'guided-target' : '') + '" title="' + esc(reason || (c.room === k ? '当前所在区域' : adjacent ? '可沿连接进入' : '请先走到相邻区域')) + '"' + (c.room === k || !adjacent || reason ? ' disabled' : '') + '><span>' + r.name + '</span><small>' + (reason ? '锁定' : c.room === k ? '你在这里' : adjacent ? '可进入' : f.visited.includes(k) ? '已到访' : '未到访') + '</small></button>'; }).join('') + '</div><p class="map-legend">' + esc(d.rooms.hall.name) + '连接其余区域；' + esc(d.rooms.tunnel.name) + '需经' + esc(d.rooms.workshop.name) + '进入。</p><div class="field-bottom"><span>现场观察没有倒计时</span><button class="quiet-button" data-do="goto" data-value="notebook">调查笔记</button><button class="quiet-button" data-do="goto" data-value="work">返回管理局</button></div></div>';
     html += '<aside class="field-controls" aria-label="现场观察与推理"><div class="field-control-title"><span class="tiny-label">当前地点</span><h2>' + room.name + '</h2></div><p class="scene-copy">' + esc(P.has(state, 'map') ? C.describe(state) : '雨后的大厅没有人声。墙上钉着一张招领须知，镜子里映着一排空椅子。') + '</p><div class="evidence-grid">' + room.things.filter((k, i) => P.has(state, 'map') || i === 0 || c.found.includes(room.things[0])).map(k => '<button class="evidence-card ' + (c.found.includes(k) ? 'found' : '') + '" data-do="inspect" data-value="' + k + '"><span class="evidence-icon">' + (c.found.includes(k) ? '✓' : '？') + '</span><span><strong>' + d.evidence[k].name + '</strong><small>' + (c.found.includes(k) ? '已记录 · 点击重读' : (P.has(state, 'career') ? '观察并记录 · +8 经验' : '观察')) + '</small></span></button>').join('') + '</div>';
     html += '<div class="case-help"' + (!P.has(state, 'notebook') ? ' hidden' : '') + '><span>已收集 ' + c.found.length + ' / ' + Object.keys(d.evidence).length + ' 件证物 · 已校验 ' + c.attempts + ' 次</span><button class="quiet-button" data-do="goto" data-value="notebook">打开调查笔记</button></div>';
-    html += '<div class="field-inventory"' + (!P.has(state, 'inventory') ? ' hidden' : '') + '><strong>随身道具</strong><p>' + (f.items.length ? f.items.map(k => esc(C.ITEMS[k])).join(' · ') : '暂无。寻找可拿取的物件。') + '</p></div><div class="field-actions"' + (!P.has(state, 'map') ? ' hidden' : '') + '>' + C.actions(state).filter(a => !['sense','read','compare'].includes(a.id) || P.has(state, 'career') && !a.reason).map(a => a.done ? '<span class="tag">✓ ' + esc(a.label) + '</span>' : '<div>' + '<button class="button ' + (state.ui.walkthrough && help.action === 'interact' && help.value === a.id ? 'guided-target' : 'secondary') + '" data-do="interact" data-value="' + esc(a.id) + '"' + (a.reason ? ' disabled' : '') + '>' + esc(a.label) + '</button>' + (a.reason ? '<small class="action-requirement">' + esc(a.reason) + '</small>' : '') + '</div>').join('') + '</div>';
+    html += '<div class="field-inventory"' + (!P.has(state, 'inventory') ? ' hidden' : '') + '><strong>随身道具</strong><p>' + (f.items.length ? f.items.map(k => esc(C.ITEMS[k])).join(' · ') : '暂无。寻找可拿取的物件。') + '</p></div><div class="field-actions"' + (!P.has(state, 'map') ? ' hidden' : '') + '>' + C.actions(state).filter(a => a.group !== 'experiment' && (!['sense','read','compare'].includes(a.id) || P.has(state, 'career') && !a.reason)).map(a => a.done ? '<span class="tag">✓ ' + esc(a.label) + '</span>' : '<div>' + '<button class="button ' + (state.ui.walkthrough && help.action === 'interact' && help.value === a.id ? 'guided-target' : 'secondary') + '" data-do="interact" data-value="' + esc(a.id) + '"' + (a.reason ? ' disabled' : '') + '>' + esc(a.label) + '</button>' + (a.reason ? '<small class="action-requirement">' + esc(a.reason) + '</small>' : '') + '</div>').join('') + '</div>';
+    html += experimentRecord(true);
     if (f.sequence.length) html += '<p class="sequence-state">已操作：' + esc(f.sequence.join(' → ')) + ' · 下一步  ' + (f.sequence.length + 1) + '/3</p>';
     if (c.solved) html += '<div class="solved-banner"><strong>结案 / ' + d.name + '</strong><p>' + (id === 'city' ? '这座城市等待你的最后决定。可以继续经营，或选择传承开始下一轮。' : '新地点已显现，管理局也获得了新的设备、材料与研究权限。') + '</p>' + button(id === 'city' ? '查看传承与结局' : '进入下一份案卷', id === 'city' ? 'goto' : 'case', id === 'city' ? 'legacy' : C.ORDER[C.ORDER.indexOf(id) + 1]) + '</div>';
     else if (c.room === 'counter' && f.flags.includes(C.CONFIG[id].done)) html += puzzleForm(id, c);
@@ -138,7 +158,7 @@
     else html += c.found.map(k => '<article class="notebook-item"><h3>' + d.evidence[k].name + '</h3><p>' + esc(d.evidence[k].read(c)) + '</p>' + (B.level(state) >= 4 ? '<p class="deep-note">辨识 / ' + d.evidence[k].deep + '</p>' : '') + '</article>').join('');
     html += '</div><div class="button-row">' + button('返回现场', 'goto', 'case') + button('获得下一条提示', 'hint', '', null, 'secondary') + '</div>';
     if (c.hints) html += '<div class="panel accent" style="margin-top:18px"><h2>推理提示</h2>' + C.hint(state).slice(0, c.hints).map(h => '<p>' + esc(h) + '</p>').join('') + '</div>';
-    return html;
+    return html + experimentRecord();
   }
   function renderWork() {
     const recipes = [['sort', '分拣失物', { items: 6 }, '线索 +4'], ['ink', '调制档案墨', { clues: 6 }, '档案墨 +3'], ['memory', '追回记忆', { clues: 6, ink: 2 }, '记忆 +4'], ['anchor', '装订现实', { memory: 5, ink: 3 }, '现实锚 +4']].filter(x => x[0] !== 'memory' && x[0] !== 'anchor' || B.has(state, x[0] === 'memory' ? 'recall' : 'binding'));
@@ -198,7 +218,9 @@
       const view = [tab, state.casebook.active, state.casebook.cases[state.casebook.active].room].join('|');
       const fields = view === lastView ? Array.from(document.querySelectorAll('#puzzle-form input, #puzzle-form select')).map(el => [el.id, el.value]) : [];
       const focused = document.activeElement && document.activeElement.id;
+      const experimentOpen = view === lastView && document.querySelector('.experiment-record')?.open;
       $('main').innerHTML = renderers[tab](); lastStructure = structural; lastView = view;
+      if (experimentOpen && document.querySelector('.experiment-record')) document.querySelector('.experiment-record').open = true;
       document.querySelectorAll('#main [data-do="goto"]').forEach(el => el.hidden = !P.has(state, el.dataset.value));
       if (tab === 'case' && state.ui.walkthrough) { const g = walkthrough(); for (const el of document.querySelectorAll('#main [data-do]')) if (el.dataset.do === g.action && el.dataset.value === g.value || g.action === 'choose-route' && el.dataset.do === 'interact' && ['take-fuse', 'take-pin'].includes(el.dataset.value)) el.classList.add('guided-target'); if (g.action === 'submit') document.querySelector('#puzzle-form button[type="submit"]')?.classList.add('guided-target'); }
       for (const [id, value] of fields) if ($(id)) $(id).value = value;
@@ -243,6 +265,8 @@
     if (el.dataset.tab) { if (!P.has(state, el.dataset.tab)) return; tab = el.dataset.tab; if (tab === 'notebook') { state.ui.notebookOpened = true; save(); } render(true); return; }
     const action = el.dataset.do, value = el.dataset.value; if (!action) return;
     if (action === 'close-modal') return $('modal').close();
+    if (action === 'help') return showHelp();
+    if (action === 'help-question') return showHelpAnswer(value);
     if (action === 'goto') { if (!P.has(state, value)) return toast('先继续当前调查，这项功能会稍后出现。'); tab = value; if (tab === 'notebook') { state.ui.notebookOpened = true; save(); } render(true); return; }
     if (action === 'guide') return showGuide();
     if (action === 'walkthrough') { state.ui.walkthrough = !state.ui.walkthrough; render(true); save(); return; }
@@ -267,6 +291,7 @@
     else result = B.act(state, action, action === 'event' ? Number(value) : value);
     if (result.ok && ['search', 'craft', 'build'].includes(action)) state.ui.operationsStarted = true; if (result.message) toast(result.message); render(); save();
   });
+  document.addEventListener('input', event => { if (event.target.id === 'help-query') { helpResults(event.target.value); $('help-answer').innerHTML = ''; } });
   document.addEventListener('submit', event => {
     if (event.target.id !== 'puzzle-form') return; event.preventDefault(); if (!owner) return toast('请先在设置中接管值班。');
     const data = new FormData(event.target), id = state.casebook.active;

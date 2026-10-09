@@ -22,7 +22,13 @@
     ['truth-handoff', 'bench', '用底联拓取长椅压痕 · 核验交接记录', ['truth-reflection'], '压痕上留下同一枚缺口和“下一班由她接你”。女人说：“我只负责交接。把你寄在这里的，是签字的那个你。”她不是寄存人，是被你提前指定的接班人。'],
     ['truth-sealed', 'counter', '装订寄存人调查记录 · 保留到下一案', ['truth-handoff'], '寄存人核验完成：交付者与认领者具有相同的手部痕迹，签名方向相反。你将“上一班的自己”记为暂定寄存人；他的动机仍不明。女人留下一个称呼：“交接员”。第二案会保留这条关系。']
   ];
-  const SIDE_FLAGS = ['ticket-lit', 'erasure', 'mirror-route', 'niche-reward', 'niche-open', 'legacy-pocket', ...TRUTH.map(a => a[0])];
+  const EXPERIMENTS = [
+    ['test-dust', '将墙边粉末铺在湿脚印旁', [], '你用剥落的墙灰铺出一条浅线。只有跨过它的实体，才会留下连续脚印。'],
+    ['test-chase', '循着脚步声追到镜前', ['test-dust'], '你追到镜前，脚步却从身后响起。粉末之外没有新脚印：声音的方向不等于实体的位置。追逐失败，稳定 -1；改用地面痕迹验证，而不是再追一次。'],
+    ['test-watch', '停在粉末线旁 · 比较脚印与倒影', ['test-dust'], '你没有移动，镜中的鞋尖却跨过浅线。地上粉末纹丝不动。记录：倒影的动作并不对应现场实体；镜面与声音不能单独作为位置证据。'],
+    ['test-cover', '用潮湿纸票遮住镜面 · 再听脚步', ['test-watch'], '遮住镜面的瞬间，身后的第二声脚步消失。移开纸票，脚步再次出现，而粉末仍未改变。记录：异常与镜面暴露有关，不是有人沿走廊尾随。']
+  ];
+  const SIDE_FLAGS = ['ticket-lit', 'erasure', 'mirror-route', 'niche-reward', 'niche-open', 'legacy-pocket', ...TRUTH.map(a => a[0]), ...EXPERIMENTS.map(a => a[0])];
   const oldTicket = E.DATA.station.evidence.ticket.read, oldLedger = E.DATA.station.evidence.ledger.read;
   E.DATA.station.evidence.ticket.read = c => E.field(c).flags.includes('ticket-lit') ? oldTicket(c) : '纸票被雨浸透了。墨迹只能看到一个柜子的轮廓。把纸票拿到登记室台灯下，柜号才会显现。';
   E.DATA.station.evidence.ledger.read = c => E.field(c).flags.includes('erasure') ? oldLedger(c) : '登记簿最后一行被擦过。肉眼看不到日号，物品描述仍是：“会阅读这行字，却无法出现在镜子里的人。”用旧镜片映照纸面，试着读取擦痕。';
@@ -70,6 +76,7 @@
   function actions(s) {
     const id = s.casebook.active, c = s.casebook.cases[id], f = E.field(c), out = E.actions(s);
     if (id === 'station') {
+      if (c.room === 'hall' && f.flags.includes('opened')) for (const a of EXPERIMENTS) out.push({ id: a[0], label: a[1], group: 'experiment', done: f.flags.includes(a[0]), reason: a[2].some(k => !f.flags.includes(k)) ? '先铺粉末并观察地面痕迹，再改变实验条件' : a[0] === 'test-cover' && !f.items.includes('receipt') ? '需要长椅上的潮湿纸票' : '' });
       for (const a of EXTRA.filter(a => a[1] === c.room)) out.push({ id: a[0], label: a[2], done: f.flags.includes(a[5]) || f.items.includes(a[5]), reason: a[3] && !f.items.includes(a[3]) ? '需要道具：' + E.ITEMS[a[3]] : '' });
       if (c.room === 'hall' && f.variation === '冷风') out.push({ id: 'niche-open', label: '沿冷风寻找柜后通路', done: f.flags.includes('niche-open') });
       if (c.room === 'niche') out.push({ id: 'niche-reward', label: '收容未寄出的信 · 随机补给', done: f.flags.includes('niche-reward') });
@@ -118,6 +125,10 @@
       (Object.hasOwn(E.ITEMS, a[5]) ? f.items : f.flags).push(a[5]);
       if (p === 'mirror-route') { if (!f.flags.includes('opened')) f.flags.push('opened'); s.stability = Math.max(0, s.stability - 2); }
       B.gainXP(s, 12); message = a[6] + (p === 'lamp-ticket' ? String(c.box).padStart(2, '0') + '。' : '') + (p === 'mirror-ledger' ? ' 登记日号：' + c.day + '。' : '') + ' 经验 +12。';
+    } else if (id === 'station' && EXPERIMENTS.some(a => a[0] === p)) {
+      const a = EXPERIMENTS.find(a => a[0] === p);
+      f.flags.push(p); if (p === 'test-chase') s.stability = Math.max(0, s.stability - 1);
+      message = a[3];
     } else if (id === 'station' && TRUTH.some(a => a[0] === p)) {
       const a = TRUTH.find(a => a[0] === p), xp = p === 'truth-sealed' ? 60 : 12;
       f.flags.push(p); B.gainXP(s, xp); message = a[4] + ' 经验 +' + xp + '。';
@@ -139,5 +150,6 @@
   function opening(s, id) {
     return id === 'tuesday' && truth(s).complete ? '入口多出一张交接条：“你追到了寄存底联。这次别把来路当成归途。”落款不是女人的名字，只有你记下的称呼：交接员。她记得你问过谁把你寄存在这里。' : '';
   }
-  return { ...E, hydrate, act, blocked, nextStep, objective, actions, describe, hint, EXTRA, TRUTH, truth, opening, optional: room => ['annex', 'niche'].includes(room) };
+  function experiments(s) { const f = E.field(s.casebook.cases.station); return EXPERIMENTS.filter(a => f.flags.includes(a[0])).map(a => ({ label: a[1], record: a[3] })); }
+  return { ...E, hydrate, act, blocked, nextStep, objective, actions, describe, hint, EXTRA, TRUTH, EXPERIMENTS, experiments, truth, opening, optional: room => ['annex', 'niche'].includes(room) };
 });
