@@ -42,10 +42,28 @@
     'woman-reply':{room:'bench',name:'验证后的追问',read:()=> '你把两次对照记录摆在长椅上。女人合上伞：“这次你没有只听我的话。地上的脚步属于我，镜里的脚步不归我管。它在那边等你靠近，我在这边等你认领。”她把伞移开，长椅上露出两组方向相反的水痕。'}
   };
   for(const [key,e] of Object.entries(REASON_EVIDENCE))C.DATA.station.evidence[key]={name:e.name,read:e.read,deep:'这是一份现场验证记录，不是额外的认领密码。'};
+  const CHANGE_EVIDENCE={
+    'mirror-knock':{flag:'test-cover',source:'遮住镜面',name:'纸票背面的敲击',read:()=> '镜面被潮湿纸票遮住，第二声脚步停止。纸票背面却响起两下敲击；粉末线没有新脚印。敲墙和敲镜框可能产生不同的回应，先改变一个条件再比较。'},
+    'wall-response':{flag:'test-wall',source:'敲走廊墙面',name:'墙面的普通回声',read:()=> '墙面只有一次正常回声，镜后的两下敲击仍按原来的节奏继续。改变墙面没有改变异常响应。'},
+    'frame-response':{flag:'test-frame',source:'敲镜框',name:'镜框迟来的第三声',read:()=> '敲镜框后，纸票背面的两声先停顿，随后多响一声。它的节奏因镜框上的动作改变；纸票的一角随之鼓起。'},
+    'uncovered-hand':{flag:'test-uncover',source:'揭开纸票',name:'倒影收回的手',read:()=> '揭开纸票时，敲击消失，镜中的女人从镜框上收回手。现实中的女人双手仍握着伞。与敲墙、敲镜框的响应放在一起，这不是正常的走廊回声。原来的遮镜与敲击记录仍保留。'}
+  };
+  for(const [key,e] of Object.entries(CHANGE_EVIDENCE))C.DATA.station.evidence[key]={name:e.name,read:e.read,deep:'现场改变后产生的观察，不是新的密码或强制通关条件。'};
+  const changeVisible=(c,k)=>C.field(c).flags.includes(CHANGE_EVIDENCE[k].flag);
+  function changes(s){if(s.casebook.active!=='station')return [];const c=s.casebook.cases.station;if(c.room!=='hall')return [];return Object.entries(CHANGE_EVIDENCE).filter(([k])=>changeVisible(c,k)).map(([key,e])=>({key,...e}));}
+  function evidenceTitle(s,k){
+    const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c);
+    if(id==='station'){
+      if(k==='mirror'&&f.flags.includes('test-cover'))return f.mirrorCovered?'被纸票遮住的镜面':f.flags.includes('test-uncover')?'重新显影的镜面':'墙上的镜子';
+      if(k==='ticket'&&f.flags.includes('ticket-lit'))return '灯下显影的纸票';
+      if(k==='ledger'&&f.flags.includes('erasure'))return '显露擦痕的登记簿';
+    }
+    return C.DATA[id].evidence[k].name;
+  }
   const reasoning = c => C.field(c).reasoning;
   const allObserved = q => ['still','step'].every(k=>q.observations.includes(k));
   function reasonVisible(c,k){const q=reasoning(c);return k==='boundary'?q.marked:k==='still-note'?q.observations.includes('still'):k==='step-note'?q.observations.includes('step'):k==='woman-reply'?q.answered:false;}
-  function visibleEvidence(s,room){const id=s.casebook.active,c=s.casebook.cases[id];return [...C.DATA[id].rooms[room].things,...(id==='station'?Object.entries(REASON_EVIDENCE).filter(([k,e])=>e.room===room&&reasonVisible(c,k)).map(([k])=>k):[])];}
+  function visibleEvidence(s,room){const id=s.casebook.active,c=s.casebook.cases[id];return [...C.DATA[id].rooms[room].things,...(id==='station'?Object.entries(REASON_EVIDENCE).filter(([k,e])=>e.room===room&&reasonVisible(c,k)).map(([k])=>k):[]),...(id==='station'&&room==='hall'?Object.keys(CHANGE_EVIDENCE).filter(k=>changeVisible(c,k)):[])];}
   function hypothesisEntries(s){if(s.casebook.active!=='station')return [];const q=reasoning(s.casebook.cases.station);return Object.entries(HYPOTHESES).map(([id,h])=>({...h,id,adopted:q.guesses.includes(id),ready:allObserved(q),status:!q.guesses.includes(id)?'未提出':q.checked.includes(id)?id==='sync'?'已推翻':'已确认':'待验证'}));}
   function canHypothesize(s){const c=s.casebook.cases.station;return s.casebook.active==='station'&&['mirror','woman'].every(k=>c.found.includes(k));}
   function evidenceStatus(s,k){
@@ -57,7 +75,10 @@
     }
     return deductionEntries(s).some(r=>r.a===k||r.b===k)?'已有结论':'已记录';
   }
-  function readEvidence(s,k){const c=s.casebook.cases[s.casebook.active];let text=C.DATA[s.casebook.active].evidence[k].read(c);if(s.casebook.active==='station'&&k==='woman'&&reasoning(c).asked)text+=' 她听完追问，补了一句：“先别相信镜子。让我停住，再让我迈步，地面和镜子一起看。”';return text;}
+  function readEvidence(s,k){const c=s.casebook.cases[s.casebook.active];let text=C.DATA[s.casebook.active].evidence[k].read(c);if(s.casebook.active==='station'){
+    if(k==='woman'&&reasoning(c).asked)text+=' 她听完追问，补了一句：“先别相信镜子。让我停住，再让我迈步，地面和镜子一起看。”';
+    if(k==='mirror'&&C.field(c).flags.includes('test-cover'))text=C.field(c).mirrorCovered?'潮湿纸票遮住镜面，现在看不见倒影。第二声脚步停止，纸票背面却有敲击。先前的镜面观察仍留在笔记里：'+text:C.field(c).flags.includes('test-uncover')?'纸票已移开，倒影重新显现。镜中的手刚从镜框上收回，现实中的女人却一直握着伞。 '+text:'离开大厅时你已取回纸票，镜面重新露出。先前的遮镜记录仍保留，可以重新遮住镜面继续比较。 '+text;
+  }return text;}
   function actions(s){
     const out=C.actions(s);if(s.casebook.active!=='station')return out;
     const c=s.casebook.cases.station,q=reasoning(c),started=q.guesses.length||C.field(c).deductions.includes('mirror-woman');
@@ -65,7 +86,7 @@
       if(room!==c.room||!canHypothesize(s)||!started)continue;
       if(id==='reason-mark'&&!q.asked||['reason-still','reason-step'].includes(id)&&!q.marked||id==='reason-return'&&!q.checked.includes('independent'))continue;
       const done=['still','step'].includes(flag)?q.observations.includes(flag):q[flag];
-      out.push({id,label,done,group:'reasoning',reason:['reason-still','reason-step'].includes(id)&&!q.guesses.length?'先在“暂定猜测”中保留一种解释，再进行对照。':''});
+      out.push({id,label,done,group:'reasoning',reason:['reason-still','reason-step'].includes(id)&&C.field(c).mirrorCovered?'镜面被纸票遮住，无法同时观察倒影。先取回纸票；离开大厅会自动取回。':['reason-still','reason-step'].includes(id)&&!q.guesses.length?'先在“暂定猜测”中保留一种解释，再进行对照。':''});
     }
     return out;
   }
@@ -97,7 +118,7 @@
     if(ok)q.checked.push(p.id);
     remember(s,{kind:'reasoning',key:'judge:'+p.id,action:'judge:'+p.id,room:c.room,ok,label:HYPOTHESES[p.id].label+' · '+(ok?p.id==='independent'?'已确认':'已推翻':'待核对'),message});return {ok,message};
   }
-  function describe(s){let text=C.describe(s);if(s.casebook.active==='station'){const c=s.casebook.cases.station,q=reasoning(c);if(c.room==='hall'&&q.marked)text+=' 地面留着一条浅粉末线。'+(q.observations.length?'鞋印与镜中鞋尖已经不在同一位置。':'女人站在线后，等你安排对照。');if(c.room==='bench'&&q.answered)text+=' 女人合上了伞，长椅上露出两组方向相反的水痕。她不再催你填表。';}return text;}
+  function describe(s){let text=C.describe(s);if(s.casebook.active==='station'){const c=s.casebook.cases.station,q=reasoning(c),f=C.field(c);if(c.room==='hall'&&q.marked)text+=' 地面留着一条浅粉末线。'+(q.observations.length?'鞋印与镜中鞋尖已经不在同一位置。':'女人站在线后，等你安排对照。');if(c.room==='hall'&&f.flags.includes('test-cover'))text+=' '+(f.mirrorCovered?'镜面现在被纸票遮住，倒影不可见。纸票背面的敲击可以继续比较。':'纸票已经取回，镜面重新露出；之前的遮镜观察保留在现场变化中。');if(c.room==='bench'&&q.answered)text+=' 女人合上了伞，长椅上露出两组方向相反的水痕。她不再催你填表。';}return text;}
   const ready = (c,r) => foundPair(c,r) && (r.needs || []).every(k=>C.field(c).flags.includes(k));
   function deductionEntries(s) {
     const id=s.casebook.active,c=s.casebook.cases[id],ids=C.field(c).deductions || [];
@@ -143,6 +164,10 @@
       f.deductions=RELATIONS[id].filter(r=>savedLinks.includes(r.id)&&ready(c,r)).map(r=>r.id);
       f.seen=[...new Set((Array.isArray(x?.seen)?x.seen:Array.isArray(f.seen)?f.seen:c.found).filter(k=>c.found.includes(k)))];
       if(id==='station'){
+        // New physical observations cannot be restored without their conditions.
+        for(const action of ['test-wall','test-frame','test-uncover']){const prerequisites=C.EXPERIMENTS.find(a=>a[0]===action)[2];if(prerequisites.some(k=>!f.flags.includes(k)))f.flags=f.flags.filter(k=>k!==action);}
+        c.found=c.found.filter(k=>!Object.hasOwn(CHANGE_EVIDENCE,k)||changeVisible(c,k));
+        f.mirrorCovered=c.room==='hall'&&f.items.includes('receipt')&&f.flags.includes('test-cover')&&!f.flags.includes('test-uncover')&&(x?.mirrorCovered??f.mirrorCovered)===true;
         const v=x?.reasoning??f.reasoning??{},pair=['mirror','woman'].every(k=>c.found.includes(k));
         const guesses=pair&&Array.isArray(v.guesses)?[...new Set(v.guesses.filter(k=>typeof k==='string'&&Object.hasOwn(HYPOTHESES,k)))]:[];
         const asked=pair&&v.asked===true&&(guesses.length>0||f.deductions.includes('mirror-woman')),marked=asked&&v.marked===true;
@@ -177,6 +202,10 @@
     if(type==='judge-hypothesis')return judge(s,p);
     const active=s.casebook.cases[s.casebook.active];
     if(type==='read-evidence'){if(!active.found.includes(p))return {ok:false};const f=C.field(active);if(!f.seen.includes(p))f.seen.push(p);return {ok:true};}
+    if(type==='inspect'&&s.casebook.active==='station'&&typeof p==='string'&&Object.hasOwn(CHANGE_EVIDENCE,p)){
+      if(active.room!=='hall'||!changeVisible(active,p))return {ok:false,message:'这处现场变化尚未发生。先亲自改变对应条件。'};
+      if(!active.found.includes(p))active.found.push(p);return act(s,'read-evidence',p);
+    }
     if(type==='inspect'&&s.casebook.active==='station'&&typeof p==='string'&&Object.hasOwn(REASON_EVIDENCE,p)){
       if(!active.found.includes(p)||!reasonVisible(active,p)||REASON_EVIDENCE[p].room!==active.room)return {ok:false,message:'请先在对应现场完成验证。'};
       return act(s,'read-evidence',p);
@@ -184,6 +213,7 @@
     if(type==='interact'&&typeof p==='string'&&p.startsWith('reason-'))return s.casebook.active==='station'?reasonAct(s,p):{ok:false,message:'这项附查只属于第一案。'};
     const id=s.casebook.active,c=s.casebook.cases[id],room=c.room,a=type==='interact'?C.actions(s).find(a=>a.id===p&&!a.done):null;
     const result=C.act(s,type,p);
+    if(type==='room'&&result.ok&&id==='station'&&room==='hall'&&c.room!=='hall')C.field(c).mirrorCovered=false;
     if(type==='inspect'&&result.ok&&!C.field(c).seen.includes(p))C.field(c).seen.push(p);
     if(a&&result.message&&allowedAction(id,room,p))remember(s,{kind:'operation',key:'op:'+room+':'+p,action:p,room,ok:result.ok,label:a.label.split(' · ')[0],message:result.message});
     return result;
@@ -201,5 +231,5 @@
     const q=reasoning(s.casebook.cases.station);if(!q.guesses.length||q.answered)return '';
     return !q.asked?'到候车长椅追问镜中脚步。':!q.marked?'在大厅准备地面与镜面的对照。':!allObserved(q)?'分别观察静止与迈步两种条件。':!q.checked.includes('independent')?'回到“暂定猜测”，用两次记录判断解释。':'带着验证记录回长椅追问。';
   }
-  return {...C,hydrate,act,actions,describe,METHODS,RELATIONS,HYPOTHESES,REASON_STEPS,REASON_EVIDENCE,hypothesisEntries,canHypothesize,evidenceStatus,visibleEvidence,readEvidence,deductionEntries,history,actionRecord,goal,optionalGoal};
+  return {...C,hydrate,act,actions,describe,METHODS,RELATIONS,HYPOTHESES,REASON_STEPS,REASON_EVIDENCE,CHANGE_EVIDENCE,changes,evidenceTitle,hypothesisEntries,canHypothesize,evidenceStatus,visibleEvidence,readEvidence,deductionEntries,history,actionRecord,goal,optionalGoal};
 });

@@ -5,6 +5,8 @@
   'use strict';
   function kind(caseId,action,value){
     value=String(value||'');if(action==='tree-read')value=value.replace(/^(evidence|action):/,'');
+    if(['test-wall','test-frame','mirror-knock','wall-response','frame-response'].includes(value))return 'echo';
+    if(['test-uncover','uncovered-hand'].includes(value))return 'mirror';
     if(['mirror','glass','take-glass','mirror-route','mirror-ledger','truth-reflection','test-cover','test-watch','reason-still','reason-step','still-note','step-note'].includes(value))return 'mirror';
     if(['power','take-fuse','fuse','take-battery','battery','project','take-lens','lens'].includes(value))return 'electric';
     if(['ticket','receipt','take-receipt','ledger','handwriting','notice','lamp-ticket','truth-paper','files','manual','letter'].includes(value))return 'paper';

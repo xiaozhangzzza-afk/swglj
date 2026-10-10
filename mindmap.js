@@ -52,6 +52,8 @@
     if(id==='station'){
       const q=f.reasoning;
       if(c.room==='hall'){
+        if(has('test-uncover'))return '纸票已移开，倒影正从镜框上收回手。';
+        if(has('test-cover'))return f.mirrorCovered?(has('test-frame')?'镜面仍被遮住，纸票一角刚鼓起。':'镜面被纸票遮住，两下敲击从背面传来。'):'纸票已取回，镜面重新露出；记录仍留着。';
         if(q.observations.includes('step'))return '粉末线留下脚印，倒影又多走了一步。';
         if(q.observations.includes('still'))return '女人站着不动，镜中的鞋却跨过了线。';
         if(q.marked)return '浅粉末线留在地面，女人站在线后。';
@@ -143,17 +145,19 @@
     confirmed.forEach(r=>edges.push({from:'evidence:'+r.a,to:'evidence:'+r.b,relation:true,active:true}));
     return { nodes, edges, height, width: 820, relations:confirmed.map(r=>[r.a,r.b,r.label]) };
   }
-  const BRANCH_NAMES = {evidence:'现场证物',operations:'主线操作',reasoning:'镜面附查',experiment:'现场验证',truth:'寄存人核验',ability:'能力与支路',travel:'前往地点'};
+  const BRANCH_NAMES = {evidence:'现场证物',operations:'主线操作',reasoning:'镜面附查',experiment:'现场验证',truth:'寄存人核验',ability:'能力与支路',changes:'现场变化',travel:'前往地点'};
   const category = a => ['annex','niche-reward'].includes(a.id)?'ability':primary(a)?'operations':a.group==='reasoning'?'reasoning':a.group==='experiment'?'experiment':a.id.startsWith('truth-')?'truth':'ability';
   function catalog(s) {
     const id=s.casebook.active,c=s.casebook.cases[id],d=C.DATA[id];
-    const evidence=C.visibleEvidence(s,c.room).filter((k,i)=>P.has(s,'map')||i===0||c.found.includes(d.rooms[c.room].things[0])).map(k=>({id:'evidence:'+k,label:d.evidence[k].name.replace('女人留下的','').replace('提伞女人的证词','提伞女人'),type:'evidence',action:'inspect',value:k,done:c.found.includes(k),hint:C.evidenceStatus(s,k)}));
+    const evidence=C.visibleEvidence(s,c.room).filter(k=>!Object.hasOwn(C.CHANGE_EVIDENCE,k)).filter((k,i)=>P.has(s,'map')||i===0||c.found.includes(d.rooms[c.room].things[0])).map(k=>({id:'evidence:'+k,label:C.evidenceTitle(s,k).replace('女人留下的','').replace('提伞女人的证词','提伞女人'),type:'evidence',action:'inspect',value:k,done:c.found.includes(k),hint:C.evidenceStatus(s,k)}));
     const available=P.has(s,'map')?C.actions(s).filter(a=>!['sense','read','compare'].includes(a.id)||a.done||!a.reason):[];
     const groups=[{token:'evidence',children:evidence,scope:'main'}];
     for(const token of ['operations','reasoning','experiment','truth','ability']){
       const children=available.filter(a=>category(a)===token).map(a=>({id:'action:'+a.id,label:shortLabel(a,id),type:'action',action:a.done?'map-result':'map-action',value:a.id,done:a.done,reason:a.done?'':a.reason||'',hint:a.done?'已完成':a.reason?'缺少条件':'待操作'}));
       if(children.length)groups.push({token,children,scope:token==='operations'?'main':'side'});
     }
+    const changes=C.changes(s).map(e=>({id:'evidence:'+e.key,label:e.name,type:'evidence',action:'inspect',value:e.key,done:c.found.includes(e.key),hint:c.found.includes(e.key)?'已记录':e.source+'后出现',changed:true}));
+    if(changes.length)groups.push({token:'changes',children:changes,scope:'side'});
     const rooms=visibleRooms(s).filter(k=>k!==c.room).map(k=>({id:'room:'+k,label:d.rooms[k].name,type:'room',action:'map-room',value:k,visited:C.field(c).visited.includes(k),hint:'前往'}));
     if(rooms.length)groups.push({token:'travel',children:rooms,scope:'travel'});
     return groups;
@@ -189,16 +193,17 @@
     const root='room:'+c.room,nodes=[{id:root,label:d.rooms[c.room].name,type:'root',action:'map-room',value:c.room,active:true,x:82,y:100,depth:0,scope:'main',hint:'你在这里',sceneState:sceneState(s),sceneMark:trace}],edges=[];
     let row=100;
     for(const g of catalog(s)){
-      const parent='branch:'+g.token,isOpen=expanded.includes(g.token),label=BRANCH_NAMES[g.token];
-      nodes.push({id:parent,label,type:'branch',action:'tree-expand',value:g.token,x:285,y:row,depth:1,scope:g.scope,expanded:isOpen,hint:(g.scope==='side'?'可选 · ':g.scope==='travel'?'移动 · ':'')+(isOpen?'已展开':'单击展开')});
+      const parent='branch:'+g.token,isOpen=g.token==='changes'||expanded.includes(g.token),label=BRANCH_NAMES[g.token];
+      const completed=g.children.filter(n=>n.done&&n.hint!=='待验证').length,done=g.children.length>0&&completed===g.children.length;
+      nodes.push({id:parent,label,type:'branch',action:'tree-expand',value:g.token,x:285,y:row,depth:1,scope:g.scope,expanded:isOpen,done,hint:g.token==='changes'?'操作留下的变化':g.token==='travel'?'选择目的地':`${completed}/${g.children.length} ${g.token==='evidence'?'已记录':'已完成'} · ${isOpen?'已展开':'展开'}`});
       edges.push({from:root,to:parent,active:g.scope==='main',scope:g.scope});
       if(isOpen)for(const n of g.children){
         nodes.push({...n,x:500,y:row,depth:2,scope:g.scope,expanded:n.type!=='room'?expanded.includes(n.id):undefined});
-        edges.push({from:parent,to:n.id,active:g.scope==='main',scope:g.scope});
+        edges.push({from:parent,to:n.id,active:g.scope==='main',scope:g.scope,done:n.done&&n.hint!=='待验证'});
         if(expanded.includes(n.id)&&n.type!=='room'){
           const leaf=n.type==='evidence'?{label:n.done?'回看文字':'观察并记录',action:'tree-read',value:n.id,hint:'阅读证物'}:n.done?{label:'回看结果',action:'tree-read',value:n.id,hint:'已完成 · 记录保留'}:n.reason?{label:'查看所需条件',action:'tree-read',value:n.id,hint:'不会执行操作'}:{label:'执行操作',action:'map-execute',value:n.value,hint:'亲自操作才推进'};
-          nodes.push({...leaf,id:'leaf:'+n.id,type:'leaf',x:715,y:row,depth:3,scope:g.scope});
-          edges.push({from:n.id,to:'leaf:'+n.id,active:g.scope==='main',scope:g.scope});
+          nodes.push({...leaf,id:'leaf:'+n.id,type:'leaf',x:715,y:row,depth:3,scope:g.scope,done:n.done&&n.hint!=='待验证'});
+          edges.push({from:n.id,to:'leaf:'+n.id,active:g.scope==='main',scope:g.scope,done:n.done&&n.hint!=='待验证'});
         }
         row+=104;
       }

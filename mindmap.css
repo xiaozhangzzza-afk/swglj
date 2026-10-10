@@ -163,3 +163,58 @@ body.mind-mode{background:#e8e8de;color:#30382f}
   .mind-tree .mind-leaf{font-size:15px;min-height:58px}
   .mind-journey li{font-size:12px;padding-right:4px}.mind-journey li>span{margin-right:4px}
 }
+/* Investigation cards: Mind Elixir-inspired rounded connectors, locally rendered.
+   Completion changes emphasis only; no node is removed, reordered or auto-folded. */
+body.mind-mode{background:#f4f3ee;color:#303b3e}
+.mind-mode .topbar{background:#faf9f5;color:#4d5c60;border-color:#dedfd8}
+.mind-mode .topbar .quiet-button{color:#465a60;border-color:#d9dedc}
+.mind-mode .mind-location{background:#f4f3ee;border-color:#d9dedb;color:#647276}
+.mind-location strong,.mind-current h2{color:#293f46}
+.mind-board{background-image:radial-gradient(#aab5b933 .8px,transparent .8px);background-size:24px 24px;border-radius:14px}
+.mind-node,.mind-tree .mind-node{--branch-color:#647f78;border:1px solid #d4ddd9;border-left:1px solid #d4ddd9;border-radius:11px;background:#fffefb;color:#304944;padding:12px 25px 12px 14px;box-shadow:0 2px 5px #243d4210;line-height:1.45;font-weight:500}
+.mind-node small{font-size:12px;color:#657773;line-height:1.5;margin-top:5px}
+.mind-node:hover{background:#fff;border-color:var(--branch-color);box-shadow:0 3px 9px #273d4219}
+.mind-node .mind-node-mark{position:absolute;right:10px;top:11px;color:var(--branch-color);font-size:14px;font-style:normal;font-weight:400}
+.mind-port{position:absolute;width:7px;height:7px;top:calc(50% - 3.5px);border:1.5px solid var(--branch-color);background:#fffefb;border-radius:50%;pointer-events:none}
+.port-in{left:-4px}.port-out{right:-4px}
+.mind-root .port-in,.mind-leaf .port-out{display:none}
+.mind-root,.mind-tree .mind-root.is-current{background:#2f484d;color:#f6f4e9;border:1px solid #2f484d;border-radius:14px;padding:16px;box-shadow:none;text-align:left}
+.mind-root small,.mind-tree .mind-root .mind-scene-state{color:#d1dddc}
+.mind-tree .mind-root:hover{background:#38545a}
+.mind-tree .mind-branch{background:#edf3f0;border:1px solid #cfddd7;color:#3f5c52;font-size:16px;box-shadow:none}
+.mind-tree .mind-leaf{background:#fafbf8;border:1px solid #d9dfd9;font-size:14px;box-shadow:none}
+.mind-tree .scope-side{--branch-color:#a28361;border-color:#dfd7cb;color:#635444;background:#fffdf8}
+.mind-tree .mind-branch.scope-side{background:#f4eee3;border:1px solid #e0d4c0}
+.mind-tree .scope-side small{color:#80715f}
+.mind-tree .scope-travel{--branch-color:#708e9a;border-color:#d0dce1;background:#f3f7f9;color:#426271}
+.mind-tree .scope-travel small{color:#687e8a}
+.mind-tree .is-archived{background:#f0f1ed;border-color:#dce0d9;color:#626e69;box-shadow:none}
+.mind-tree .is-archived small{color:#717b76}
+.mind-tree .is-archived .mind-port{border-color:#aab5ad;background:#f0f1ed}
+.mind-tree .is-archived:hover{border-color:#82958a;background:#fafbf7;color:#3a5146}
+.mind-evidence.is-recorded span:before,.mind-action.is-recorded span:before,.mind-evidence.evidence-new span:before{content:none}
+.mind-tree .evidence-pending{background:#fffcf3;border-color:#c8b48b}
+.mind-tree .is-new-change{border-color:#b69769;background:#fffcf2;box-shadow:0 0 0 2px #c2a26f18}
+.mind-tree .needs-tool{border-style:dashed;background:#f7f7f3;color:#6a7470;box-shadow:none}
+.mind-tree .is-selected,.mind-node.is-link-selected{outline:2px solid #5e8390;outline-offset:3px;background:#fff;color:#294b58}
+.mind-tree .is-selected small{color:#496b77}
+.mind-tree .mind-lines path{stroke:#b3c7bd;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.mind-tree .mind-lines .scope-side{stroke:#c6b396;stroke-dasharray:none;opacity:1}
+.mind-tree .mind-lines .scope-travel{stroke:#a8bec7}
+.mind-tree .mind-lines .completed-link{stroke:#cbd3cb;stroke-width:1.2}
+.mind-tree .mind-lines .focus-link{stroke:#5e8390;stroke-width:2.1}
+.mind-objective{color:#445d57}.mind-objective>span{color:#74847c}
+.mind-gesture-tip{border-color:#abc0b5;color:#687970;font-size:13px}
+.mind-guide{color:#776343;border-color:#baa078}
+.mind-change-shortcut{margin:8px 0 12px}.mind-change-shortcut .text-button{color:#8a6538;font-size:14px;min-height:32px;padding:4px 0}
+.mind-journey .stage-current{color:#315951;border-color:#658f7c}
+.mind-journey .stage-done{color:#74877b;border-color:#b2c5b8}
+@media(max-width:850px){
+  .mind-port{display:none}
+  .mind-tree .mind-node:before,.mind-tree .mind-node:after{border-color:#c1cec7}
+  .mind-tree .scope-side:before,.mind-tree .scope-side:after{border-color:#d0bd9f}
+  .mind-tree .scope-travel:before,.mind-tree .scope-travel:after{border-color:#b7ccd3}
+  .mind-tree .mind-root{padding:16px;font-size:21px}
+  .mind-tree .mind-node{font-size:16px}
+  .mind-tree .mind-leaf{font-size:14px}
+}

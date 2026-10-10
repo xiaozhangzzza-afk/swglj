@@ -94,7 +94,7 @@
     body += '<p>现场需要亲自拿取与使用道具、修复机关、沿相邻区域移动。仅填写正确答案不能跳过现场。每案至少七个区域，等级 4 / 8 / 12 还会开放额外侧室。</p><div class="button-row">' + button('带我体验 · 开启实操向导', 'guided-start', '', null, 'gold') + button(intro ? '自由开始调查' : '返回当前现场', 'start-investigation', '', null, 'secondary') + (!intro ? button('查看升级奖励', 'levels', '', null, 'secondary') : '') + '</div>';
     modal(intro ? '第一天值班 · 入职指引' : '玩法与操作指引', body);
   }
-  function evidenceContent(id, key) { const d = C.DATA[id].evidence[key]; return '<p class="evidence-read">' + esc(C.readEvidence(state,key)) + '</p>' + (B.level(state) >= 4 ? '<p class="deep-note">辨识 / ' + esc(d.deep) + '</p>' : '') + '<p class="progress-label">'+(id==='station'&&Object.hasOwn(C.REASON_EVIDENCE,key)?'现场验证记录已保存；阅读与附查不额外奖励经验。':'已记入调查笔记。每件证物仅首次记录获得 8 经验；重复阅读不加经验。')+'</p>'; }
+  function evidenceContent(id, key) { const d = C.DATA[id].evidence[key]; return '<p class="evidence-read">' + esc(C.readEvidence(state,key)) + '</p>' + (B.level(state) >= 4 ? '<p class="deep-note">辨识 / ' + esc(d.deep) + '</p>' : '') + '<p class="progress-label">'+(id==='station'&&(Object.hasOwn(C.REASON_EVIDENCE,key)||Object.hasOwn(C.CHANGE_EVIDENCE,key))?'现场验证记录已保存；阅读与附查不额外奖励经验。':'已记入调查笔记。每件证物仅首次记录获得 8 经验；重复阅读不加经验。')+'</p>'; }
   function puzzleForm(id, c) {
     const select = (name, label, options) => '<div><label for="' + name + '">' + label + '</label><select id="' + name + '" name="' + name + '"><option value="">请选择</option>' + options.map(([v, t]) => '<option value="' + esc(v) + '">' + esc(t) + '</option>').join('') + '</select></div>';
     const owners = [['me', '我自己'], ['woman', '提伞女人'], ['citizens', '全体市民'], ['nobody', '无人']];
@@ -129,13 +129,16 @@
     const selected=linkDraft&&n.type==='evidence'&&(linkDraft.a===n.value||linkDraft.b===n.value);
     const hint=n.hint||(n.active?'你在这里':n.type==='root'?(n.id==='focus'?'双击阅读':'案卷'):n.type==='room'?(n.visited?'已到访':'前往'):n.done?'已记录':n.reason?'缺少条件 · 点开查看':n.type==='evidence'?'观察':n.type==='optional'?'可选':'操作');
     const statusClass=n.type==='evidence'?({'新发现':' evidence-new','待验证':' evidence-pending','已有结论':' evidence-concluded'}[hint]||''):'';
-    return '<button id="mind-' + esc(n.id) + '" class="mind-node mind-' + n.type + statusClass + (n.active ? ' is-current' : '') + (n.done ? ' is-recorded' : '') + (selected?' is-link-selected':'') + (n.reason ? ' needs-tool' : '') + (n.depth!==undefined?' tree-depth-'+n.depth+' scope-'+n.scope:'') + (mapFocus&&mapFocus.value===n.value&&mapFocus.action===n.action?' is-selected':'') + '" data-do="' + esc(n.action) + '" data-value="' + esc(n.value) + '" style="--node-x:' + (n.x / 820 * 100) + '%;--node-y:' + n.y + 'px;--depth:'+(n.depth||0)+'" aria-label="' + esc(n.label + (n.active ? '，当前地点' : selected?'，连线已选中':n.type==='evidence'||n.done?'，'+hint:n.reason ? '，需要前置条件' : '')) + '"' + (n.active ? ' aria-current="location"' : '') + (n.expanded!==undefined?' aria-expanded="'+n.expanded+'"':'') + '><span>' + esc(n.label) + '</span><small>' + esc(selected?'已选中 · '+(linkDraft.a===n.value?'起点':'终点'):hint) + '</small>'+(n.sceneState?'<span class="mind-scene-state">'+esc(n.sceneState)+'</span>':'')+(n.sceneMark?'<i class="scene-trace trace-'+esc(n.sceneMark)+'" aria-hidden="true"></i>':'')+'</button>';
+    const archived=n.done&&hint!=='待验证',mark=n.active?'':archived?'✓':n.expanded!==undefined?(n.expanded?'−':'+'):n.type==='room'?'→':'';
+    return '<button id="mind-' + esc(n.id) + '" class="mind-node mind-' + n.type + statusClass + (n.active ? ' is-current' : '') + (n.done ? ' is-recorded' : '') + (archived?' is-archived':'') + (n.changed&&!n.done?' is-new-change':'') + (selected?' is-link-selected':'') + (n.reason ? ' needs-tool' : '') + (n.depth!==undefined?' tree-depth-'+n.depth+' scope-'+n.scope:'') + (mapFocus&&mapFocus.value===n.value&&mapFocus.action===n.action?' is-selected':'') + '" data-do="' + esc(n.action) + '" data-value="' + esc(n.value) + '" style="--node-x:' + (n.x / 820 * 100) + '%;--node-y:' + n.y + 'px;--depth:'+(n.depth||0)+'" aria-label="' + esc(n.label + (n.active ? '，当前地点' : selected?'，连线已选中':n.type==='evidence'||n.done?'，'+hint:n.reason ? '，需要前置条件' : '')) + '"' + (n.active ? ' aria-current="location"' : '') + (n.expanded!==undefined?' aria-expanded="'+n.expanded+'"':'') + '><i class="mind-port port-in" aria-hidden="true"></i><i class="mind-port port-out" aria-hidden="true"></i><i class="mind-node-mark" aria-hidden="true">'+mark+'</i><span>' + esc(n.label) + '</span><small>' + esc(selected?'已选中 · '+(linkDraft.a===n.value?'起点':'终点'):hint) + '</small>'+(n.sceneState?'<span class="mind-scene-state">'+esc(n.sceneState)+'</span>':'')+(n.sceneMark?'<i class="scene-trace trace-'+esc(n.sceneMark)+'" aria-hidden="true"></i>':'')+'</button>';
   }
   function renderMap(model) {
     const byId = Object.fromEntries(model.nodes.map(n => [n.id, n]));
+    const trail=new Set();let cursor=model.nodes.find(n=>mapFocus&&n.value===mapFocus.value&&n.action===mapFocus.action)?.id;
+    while(cursor&&!trail.has(cursor)){trail.add(cursor);cursor=model.edges.find(e=>e.to===cursor&&!e.relation)?.from;}
     const lines = model.edges.map(e => {
       const a = byId[e.from], b = byId[e.to], start = a.x + (a.type === 'root' ? 95 : 78), end = b.x - (b.type === 'room' ? 78 : 96), mid = (start + end) / 2;
-      return '<path data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '"' + (e.relation?' data-relation="true"':'') + (e.navigation?' data-navigation="true"':'') + ' class="' + (e.active ? 'active-link ' : '') + (e.scope?'scope-'+e.scope+' ':'') + (e.relation?'relation-link ':'') + (e.navigation?'navigation-link ':'') + (e.pending?'pending-link':'') + '" d="M ' + start + ' ' + a.y + ' C ' + mid + ' ' + a.y + ', ' + mid + ' ' + b.y + ', ' + end + ' ' + b.y + '"/>';
+      return '<path data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '"' + (e.relation?' data-relation="true"':'') + (e.navigation?' data-navigation="true"':'') + ' class="' + (e.active ? 'active-link ' : '') + (e.scope?'scope-'+e.scope+' ':'') + (e.done?'completed-link ':'') + (trail.has(e.from)&&trail.has(e.to)?'focus-link ':'') + (e.relation?'relation-link ':'') + (e.navigation?'navigation-link ':'') + (e.pending?'pending-link':'') + '" d="'+window.BureauEdges.rounded(start,a.y,end,b.y)+'"/>';
     }).join('');
     const destinations=model.nodes.filter(n=>n.type==='room'&&n.x===676),first=destinations[0];
     const label=model.navigationLabel&&first?'<span class="mind-column-label" style="left:'+(first.x/820*100)+'%;top:'+(Math.min(...destinations.map(n=>n.y))-56)+'px">'+esc(model.navigationLabel)+'</span>':'';
@@ -160,6 +163,7 @@
     if(C.history(state).length)html+='<button class="mind-tool-button" data-do="map-history">现场记录 · '+C.history(state).length+'</button>';
     html += '<button class="mind-tool-button" data-do="map-hint">调查提示</button></div></div><p class="mind-gesture-tip">单击长出下一层 · 双击显示文字 · 展开的枝叶会保留</p>';
     html+='<p class="mind-objective"><span>主线目标</span>'+esc(C.goal(state))+'</p>';
+    if(C.changes(state).length)html+='<p class="mind-change-shortcut"><button class="text-button" data-do="map-changes">现场变化 · '+C.changes(state).filter(e=>!c.found.includes(e.key)).length+' 处待观察 ↓</button></p>';
     const optional=C.optionalGoal(state);if(optional)html+='<p class="mind-side-goal"><span>自由附查 · 可选</span>'+esc(optional)+'</p>';
     if(linkDraft)html+=renderLinkDraft();
     if (g) html += '<p class="mind-guide" role="status">' + esc(g.title) + ' <button data-do="walkthrough-step" class="text-button">这一步怎么做</button><button data-do="walkthrough" class="text-button">收起引导</button></p>';
@@ -179,7 +183,7 @@
       // Place navigation beside its destination instead of wrapping the whole board.
       if(path.dataset.navigation)path.setAttribute('d','M '+(x2-24)+' '+y2+' H '+x2);
       else if(path.dataset.relation){const end=b.right-bounds.left,side=Math.min(bounds.width-5,Math.max(x1,end)+38);path.setAttribute('d','M '+x1+' '+y1+' C '+side+' '+y1+', '+side+' '+y2+', '+end+' '+y2);}
-      else path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + mid + ' ' + y1 + ', ' + mid + ' ' + y2 + ', ' + x2 + ' ' + y2);
+      else path.setAttribute('d',window.BureauEdges.rounded(x1,y1,x2,y2));
     }
   }
   function renderLinkDraft(){
@@ -246,10 +250,10 @@
       if(!a)return toast('操作已完成，或不在当前地点。');
       if(a.reason)return toast('缺少条件：双击操作节点查看说明。');
       if(!owner)return toast('请先接管本页值班。');
-      const r=C.act(state,'interact',value);
+      const beforeChanges=C.changes(state).length,r=C.act(state,'interact',value),newChanges=C.changes(state).slice(beforeChanges);
       lastMapResult={caseId:state.casebook.active,value,message:r.message||'操作已完成。'};
       mapFocus={action:r.ok?'map-result':'map-action',value,label:a.label.split(' · ')[0],caseId:state.casebook.active,era:state.era};
-      render();save();return toast(r.ok?'已完成 · 结果已保存在现场记录':'未成功 · 可回看现场记录后重试');
+      renderAnchored('action:'+value);save();return toast(r.ok?(newChanges.length?'现场已改变 · '+newChanges.map(e=>e.name).join('、')+'出现在「现场变化」':'已完成 · 结果已保存在现场记录'):'未成功 · 可回看现场记录后重试');
     }
     if(action==='case'||action==='goto'){
       if(action==='goto'){if(!P.has(state,value))return;tab=value;mapFocus=null;render(true);return;}
@@ -275,7 +279,7 @@
     }
     if(['inspect','map-read'].includes(action)){
       if(!c.found.includes(value)){if(!owner)return toast('请先接管本页值班。');const r=C.act(state,'inspect',value);if(!r.ok)return toast(r.message);render();save();}
-      if(c.found.includes(value)){if(owner){C.act(state,'read-evidence',value);render();save();}modal(d.evidence[value].name,evidenceContent(id,value));}
+      if(c.found.includes(value)){if(owner){C.act(state,'read-evidence',value);render();save();}modal(C.evidenceTitle(state,value),evidenceContent(id,value));}
       return;
     }
     if(action==='map-action'||action==='map-execute'||action==='map-result'){
@@ -474,6 +478,7 @@
     if(action==='map-back'){mapFocus=null;render(true);return;}
     if(action==='map-focus-read'){if(mapFocus)readMapNode(mapFocus.action,mapFocus.value,mapFocus.label);return;}
     if(action==='map-confirm'){if(mapFocus?.action==='map-action'&&mapFocus.value===value)enterMapNode('map-execute',value,mapFocus.label);return;}
+    if(action==='map-changes'){enterMapNode('tree-expand','changes','现场变化');$('mind-branch:changes')?.scrollIntoView({block:'center',behavior:'instant'});return;}
     if(action==='map-history')return showMapHistory();
     if(action==='map-hypotheses')return showHypotheses();
     if(action==='hypothesis-adopt'){
