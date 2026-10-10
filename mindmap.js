@@ -143,5 +143,84 @@
     confirmed.forEach(r=>edges.push({from:'evidence:'+r.a,to:'evidence:'+r.b,relation:true,active:true}));
     return { nodes, edges, height, width: 820, relations:confirmed.map(r=>[r.a,r.b,r.label]) };
   }
-  return { scene, sceneState, notes, visibleRooms, path, move, actions, primary, secondClick, deferEntry, ROW, DOUBLE_CLICK_MS };
+  const BRANCH_NAMES = {evidence:'现场证物',operations:'主线操作',reasoning:'镜面附查',experiment:'现场验证',truth:'寄存人核验',ability:'能力与支路',travel:'前往地点'};
+  const category = a => ['annex','niche-reward'].includes(a.id)?'ability':primary(a)?'operations':a.group==='reasoning'?'reasoning':a.group==='experiment'?'experiment':a.id.startsWith('truth-')?'truth':'ability';
+  function catalog(s) {
+    const id=s.casebook.active,c=s.casebook.cases[id],d=C.DATA[id];
+    const evidence=C.visibleEvidence(s,c.room).filter((k,i)=>P.has(s,'map')||i===0||c.found.includes(d.rooms[c.room].things[0])).map(k=>({id:'evidence:'+k,label:d.evidence[k].name.replace('女人留下的','').replace('提伞女人的证词','提伞女人'),type:'evidence',action:'inspect',value:k,done:c.found.includes(k),hint:C.evidenceStatus(s,k)}));
+    const available=P.has(s,'map')?C.actions(s).filter(a=>!['sense','read','compare'].includes(a.id)||a.done||!a.reason):[];
+    const groups=[{token:'evidence',children:evidence,scope:'main'}];
+    for(const token of ['operations','reasoning','experiment','truth','ability']){
+      const children=available.filter(a=>category(a)===token).map(a=>({id:'action:'+a.id,label:shortLabel(a,id),type:'action',action:a.done?'map-result':'map-action',value:a.id,done:a.done,reason:a.done?'':a.reason||'',hint:a.done?'已完成':a.reason?'缺少条件':'待操作'}));
+      if(children.length)groups.push({token,children,scope:token==='operations'?'main':'side'});
+    }
+    const rooms=visibleRooms(s).filter(k=>k!==c.room).map(k=>({id:'room:'+k,label:d.rooms[k].name,type:'room',action:'map-room',value:k,visited:C.field(c).visited.includes(k),hint:'前往'}));
+    if(rooms.length)groups.push({token:'travel',children:rooms,scope:'travel'});
+    return groups;
+  }
+  const treeKey = s => s.casebook.active+':'+s.casebook.cases[s.casebook.active].room;
+  function opened(s){const saved=s.ui?.investigationTrees?.[treeKey(s)];return Array.isArray(saved)?saved:['evidence'];}
+  function grow(s,token) {
+    const groups=catalog(s),parent=groups.find(g=>g.token===token||g.children.some(n=>n.id===token&&n.type!=='room'));
+    if(!parent)return false;
+    s.ui ||= {};s.ui.investigationTrees ||= {};
+    s.ui.investigationTrees[treeKey(s)]=[...new Set([...opened(s),parent.token,token])];
+    return true;
+  }
+  function restoreTrees(s,raw) {
+    if(!raw||typeof raw!=='object'||Array.isArray(raw))return s;
+    const clean={};
+    for(const id of C.ORDER)for(const room of Object.keys(C.DATA[id].rooms)){
+      const key=id+':'+room;if(!Object.hasOwn(raw,key)||!Array.isArray(raw[key]))continue;
+      const copy={...s,casebook:{...s.casebook,active:id,cases:{...s.casebook.cases,[id]:{...s.casebook.cases[id],room}}}};
+      const groups=catalog(copy),valid=new Set(groups.flatMap(g=>[g.token,...g.children.filter(n=>n.type!=='room').map(n=>n.id)]));
+      // Only presentation state is restored. A saved branch never unlocks a room,
+      // grants an item, or completes an investigation action.
+      const values=raw[key].slice(0,80).filter(v=>typeof v==='string'&&valid.has(v));
+      for(const g of groups)if(g.children.some(n=>values.includes(n.id)))values.push(g.token);
+      clean[key]=[...new Set(['evidence',...values])];
+    }
+    if(Object.keys(clean).length)s.ui.investigationTrees=clean;
+    return s;
+  }
+  function tree(s) {
+    const id=s.casebook.active,c=s.casebook.cases[id],d=C.DATA[id],expanded=opened(s),f=C.field(c);
+    const trace=id==='station'?(c.room==='hall'&&f.reasoning.marked?'powder':c.room==='bench'&&f.reasoning.answered?'water':''):'';
+    const root='room:'+c.room,nodes=[{id:root,label:d.rooms[c.room].name,type:'root',action:'map-room',value:c.room,active:true,x:82,y:100,depth:0,scope:'main',hint:'你在这里',sceneState:sceneState(s),sceneMark:trace}],edges=[];
+    let row=100;
+    for(const g of catalog(s)){
+      const parent='branch:'+g.token,isOpen=expanded.includes(g.token),label=BRANCH_NAMES[g.token];
+      nodes.push({id:parent,label,type:'branch',action:'tree-expand',value:g.token,x:285,y:row,depth:1,scope:g.scope,expanded:isOpen,hint:(g.scope==='side'?'可选 · ':g.scope==='travel'?'移动 · ':'')+(isOpen?'已展开':'单击展开')});
+      edges.push({from:root,to:parent,active:g.scope==='main',scope:g.scope});
+      if(isOpen)for(const n of g.children){
+        nodes.push({...n,x:500,y:row,depth:2,scope:g.scope,expanded:n.type!=='room'?expanded.includes(n.id):undefined});
+        edges.push({from:parent,to:n.id,active:g.scope==='main',scope:g.scope});
+        if(expanded.includes(n.id)&&n.type!=='room'){
+          const leaf=n.type==='evidence'?{label:n.done?'回看文字':'观察并记录',action:'tree-read',value:n.id,hint:'阅读证物'}:n.done?{label:'回看结果',action:'tree-read',value:n.id,hint:'已完成 · 记录保留'}:n.reason?{label:'查看所需条件',action:'tree-read',value:n.id,hint:'不会执行操作'}:{label:'执行操作',action:'map-execute',value:n.value,hint:'亲自操作才推进'};
+          nodes.push({...leaf,id:'leaf:'+n.id,type:'leaf',x:715,y:row,depth:3,scope:g.scope});
+          edges.push({from:n.id,to:'leaf:'+n.id,active:g.scope==='main',scope:g.scope});
+        }
+        row+=104;
+      }
+      else row+=104;
+      row+=24;
+    }
+    if(c.room==='counter'&&!c.solved&&f.flags.includes(C.CONFIG[id].done)||c.solved){
+      const n=c.solved?{id:'next',label:id==='city'?'决定城市去向':'下一份案卷',action:id==='city'?'goto':'case',value:id==='city'?'legacy':C.ORDER[C.ORDER.indexOf(id)+1]}:{id:'solve',label:'提交推理',action:'map-solve',value:''};
+      nodes.push({...n,type:'solve',x:285,y:row,depth:1,scope:'main',hint:c.solved?'继续':'核对主线'});edges.push({from:root,to:n.id,active:true});row+=104;
+    }
+    return {nodes,edges,width:820,height:Math.max(300,row-24),tree:true};
+  }
+  function guideBranch(s,g){
+    if(g.action==='room')return 'travel';
+    if(g.action==='choose-route')return 'operations';
+    return catalog(s).find(b=>b.children.some(n=>n.value===g.value&&n.action===(g.action==='interact'?'map-action':g.action)))?.token;
+  }
+  function journey(s){
+    const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c),has=k=>f.flags.includes(k);
+    const labels=id==='station'?['发现异常','打开通路','补齐信息','完成认领']:id==='tuesday'?['发现异常','恢复设备','找回归途','结束等待']:['发现异常','启动投影','校准城市','完成归还'];
+    const index=c.solved?4:c.found.length<2?0:id==='station'?!has('opened')?1:!has('ticket-lit')||!has('erasure')?2:3:id==='tuesday'?!has('powered')?1:!has('doors')?2:3:!has('projected')?1:!has('authorized')?2:3;
+    return labels.map((label,i)=>({label,status:i<index?'done':i===index?'current':'future'}));
+  }
+  return { scene, sceneState, notes, tree, grow, restoreTrees, guideBranch, journey, visibleRooms, path, move, actions, primary, secondClick, deferEntry, ROW, DOUBLE_CLICK_MS };
 });

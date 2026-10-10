@@ -110,6 +110,21 @@ body.mind-mode{background:#e8e8de;color:#30382f}
 @keyframes city-trace{0%{opacity:0;clip-path:inset(0 100% 0 0)}35%{opacity:.6}100%{opacity:0;clip-path:inset(0 0 0 0)}}
 @media(prefers-reduced-motion:reduce){.node-click-fx{display:none}.mind-entering .mind-node,.mind-entering .mind-lines .active-link{animation:none}}
 .mind-mode .toast{max-width:calc(100vw - 40px)}
+.mind-location{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:14px;line-height:1.6;padding:9px 0;background:#e8e8de;position:sticky;top:0;z-index:3;border-bottom:1px solid #c8cebc;color:#58654c}
+.mind-location i{font-style:normal;color:#93a084}.mind-location strong{color:#354c2c;font-weight:600}
+.mind-journey{display:flex;gap:0;padding:0;margin:14px 0 20px;list-style:none;max-width:740px}
+.mind-journey li{flex:1;font-size:14px;color:#828a78;padding:7px 10px 7px 0;border-bottom:2px solid #c8cebf;line-height:1.5}
+.mind-journey li>span{margin-right:7px;font-size:12px}.mind-journey .stage-current{color:#354c2c;border-color:#526d40;font-weight:600}.mind-journey .stage-done{color:#647b50;border-color:#95a983}
+.mind-side-goal{font-size:14px;color:#806d4c;line-height:1.7;margin:8px 0}.mind-side-goal span{font-size:12px;margin-right:12px}
+.mind-tree .mind-node{width:clamp(136px,16vw,184px);font-size:17px}
+.mind-tree .mind-root{width:clamp(148px,16vw,184px);font-size:20px}
+.mind-tree .mind-root .mind-scene-state{font-size:13px;margin-top:9px;padding-top:8px}
+.mind-tree .mind-branch{background:#edf0e3;border-left:3px solid #708b58;font-size:17px}
+.mind-tree .mind-leaf{background:transparent;border:1px solid #acb79c;font-size:15px}
+.mind-tree .scope-side{border-color:#b5a688;color:#6c5d40}.mind-tree .mind-branch.scope-side{background:#f0ecdf;border-left:3px solid #ac9263}
+.mind-tree .scope-side small{color:#8b7956}.mind-tree .scope-travel{border-color:#91a9ae;color:#3e626a;background:#e8eeec}.mind-tree .scope-travel small{color:#587d82}
+.mind-tree .mind-lines .scope-side{stroke:#b2a07c;stroke-dasharray:4 3;opacity:.8}.mind-tree .mind-lines .scope-travel{stroke:#94acaf}
+.mind-tree .is-selected{outline:2px solid #89956f;outline-offset:3px}
 @media(max-width:1000px) and (min-width:851px){.mind-node{font-size:17px}.mind-root{font-size:19px}}
 @media(max-width:850px){
   .mind-mode main{width:calc(100% - 28px);margin:16px auto;padding:0}
@@ -141,4 +156,10 @@ body.mind-mode{background:#e8e8de;color:#30382f}
   .mind-foot{gap:10px;flex-wrap:wrap;padding-top:10px}
   .mind-foot>span:first-child{width:100%;margin:0}
   .mind-mode footer{font-size:11px;padding:12px 14px}
+  .mind-tree .mind-node{order:initial;margin-left:calc(var(--depth)*22px);width:calc(100% - var(--depth)*22px);font-size:17px;min-height:66px}
+  .mind-tree .mind-node:before{left:-14px;width:13px}.mind-tree .mind-node:after{left:-14px;width:0}
+  .mind-tree .mind-root{font-size:21px;margin-bottom:8px;min-height:90px}
+  .mind-tree .mind-branch{margin-top:18px}.mind-tree .mind-branch small{font-size:13px}
+  .mind-tree .mind-leaf{font-size:15px;min-height:58px}
+  .mind-journey li{font-size:12px;padding-right:4px}.mind-journey li>span{margin-right:4px}
 }

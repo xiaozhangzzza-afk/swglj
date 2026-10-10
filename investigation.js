@@ -192,10 +192,14 @@
     const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c),has=k=>f.flags.includes(k);
     if(c.solved)return id==='city'?'这座城市已接回现实。接下来由你决定保留什么。':'本案已结案。可以继续下一案，或回访未查清的支路。';
     if(!c.found.length&&id==='station')return '观察大厅留下的异常，弄清这里正在等待谁。';
-    if(id==='station'&&reasoning(c).guesses.length&&!reasoning(c).answered){const q=reasoning(c);return '附查：'+(!q.asked?'到候车长椅追问镜中脚步。':!q.marked?'在大厅准备地面与镜面的对照。':!allObserved(q)?'分别观察静止与迈步两种条件。':!q.checked.includes('independent')?'回到“暂定猜测”，用两次记录判断解释。':'带着验证记录回长椅追问。')+'（不影响主线）';}
     if(id==='station')return !has('opened')?'找到进入登记室的方法。':!has('ticket-lit')||!has('erasure')?'让残缺的取件信息重新显现。':!has('stamped')?'接通认领流程。':'核对取件信息，确认谁被登记为失物。';
     if(id==='tuesday')return !has('powered')?'让停摆的设备重新运转。':!has('rewound')?'找到改变走廊方向的方法。':!has('doors')?'亲自找回离开这一天的路线。':'核对归途，并决定如何结束这份等待。';
     return !has('projected')?'让城市模型显出完整的街区。':!has('aligned')?'校准模型与现场的对应关系。':!has('authorized')?'找回原始档案的查阅权限。':'整理城市的过去，确认应当由谁认领。';
   }
-  return {...C,hydrate,act,actions,describe,METHODS,RELATIONS,HYPOTHESES,REASON_STEPS,REASON_EVIDENCE,hypothesisEntries,canHypothesize,evidenceStatus,visibleEvidence,readEvidence,deductionEntries,history,actionRecord,goal};
+  function optionalGoal(s){
+    if(s.casebook.active!=='station')return '';
+    const q=reasoning(s.casebook.cases.station);if(!q.guesses.length||q.answered)return '';
+    return !q.asked?'到候车长椅追问镜中脚步。':!q.marked?'在大厅准备地面与镜面的对照。':!allObserved(q)?'分别观察静止与迈步两种条件。':!q.checked.includes('independent')?'回到“暂定猜测”，用两次记录判断解释。':'带着验证记录回长椅追问。';
+  }
+  return {...C,hydrate,act,actions,describe,METHODS,RELATIONS,HYPOTHESES,REASON_STEPS,REASON_EVIDENCE,hypothesisEntries,canHypothesize,evidenceStatus,visibleEvidence,readEvidence,deductionEntries,history,actionRecord,goal,optionalGoal};
 });

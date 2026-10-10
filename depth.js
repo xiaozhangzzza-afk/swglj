@@ -85,7 +85,7 @@
     out.push({ id: 'sense', label: '听取现场残响 · Lv.2', done: f.flags.includes('sense:' + c.room), reason: B.level(s) < 2 ? '资历达到 Lv.2 后获得；主线无需此能力' : '' });
     out.push({ id: 'read', label: '辨读隐去的痕迹 · Lv.4', done: f.flags.includes('read:' + c.room), reason: B.level(s) < 4 ? '资历达到 Lv.4 后获得；主线无需此能力' : '' });
     if (c.found.length >= 2) out.push({ id: 'compare', label: '比对已记录证物 · Lv.6', done: f.flags.includes('comparison'), reason: B.level(s) < 6 ? '资历达到 Lv.6 后获得；也可自行查阅笔记' : '' });
-    if (B.level(s) >= 9 && !f.flags.includes('legacy-pocket')) out.push({ id: 'legacy-pocket', label: '取出跨轮回调查工具 · 旧镜片', done: false });
+    if (B.level(s) >= 9) out.push({ id: 'legacy-pocket', label: '取出跨轮回调查工具 · 旧镜片', done: f.flags.includes('legacy-pocket') });
     return out;
   }
   function describe(s) {
