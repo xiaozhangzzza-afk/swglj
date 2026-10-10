@@ -13,8 +13,17 @@ body.mind-mode{background:#e8e8de;color:#30382f}
 .mind-mode footer{color:#747d6a;padding:12px 28px}
 .mind-mode footer span{display:none}
 .mind-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
-.mind-heading h1{font-size:24px;font-weight:500;letter-spacing:1px;line-height:1.6;margin:4px 0 0}
-.mind-heading .tiny-label{font-size:11px;color:#68735e;letter-spacing:2px}
+.mind-heading h1{font-size:28px;font-weight:600;letter-spacing:.5px;line-height:1.5;margin:4px 0 0}
+.mind-heading .tiny-label{font-size:13px;color:#59664e;letter-spacing:1px}
+.mind-heading .quiet-button{font-size:15px;padding:10px 14px;color:#39492e;border-color:#9ba88c}
+.mind-tools{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 24px;padding:0 0 18px;border-bottom:1px solid #b9c3ae}
+.mind-tools button,.mind-tool-button{min-height:44px;padding:9px 16px;border:1px solid #a6b399;background:#f5f6ec;border-radius:3px;color:#3c4c30;font-size:16px;line-height:1.4;font-weight:500;white-space:normal}
+.mind-tools button:hover,.mind-tool-button:hover{background:#fffef6;border-color:#526d3e}
+.mind-tools button[aria-pressed="true"],.mind-tool-button.primary{background:#3e5132;color:#fff;border-color:#3e5132}
+.mind-tools [data-field-level]{margin-left:5px;font-size:14px}
+.mind-current small{font-size:13px;color:#59694c}
+.mind-current h2{font-size:24px;line-height:1.5;margin:4px 0 0;color:#303f27;font-weight:600}
+.mind-context-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .mind-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;color:#77806d}
 .mind-switch{display:flex;gap:16px}
 .mind-switch button{border:0;border-bottom:2px solid transparent;padding:7px 0;background:transparent;color:#77806d;border-radius:0;font-size:14px}
@@ -23,22 +32,23 @@ body.mind-mode{background:#e8e8de;color:#30382f}
 .mind-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .mind-lines path{stroke:#bdc4b1;stroke-width:1.25;fill:none;vector-effect:non-scaling-stroke}
 .mind-lines .active-link{stroke:#778b62;stroke-width:1.65}
-.mind-node{position:absolute;left:var(--node-x);top:var(--node-y);transform:translate(-50%,-50%);width:192px;min-height:52px;padding:9px 11px;border:1px solid #bec7b0;border-radius:3px;color:#414e35;background:#f7f7f0;box-shadow:none;text-align:left;line-height:1.45;font-size:14px;white-space:normal}
+.mind-node{position:absolute;left:var(--node-x);top:var(--node-y);transform:translate(-50%,-50%);width:clamp(174px,20vw,238px);min-height:72px;padding:11px 15px;border:1px solid #97a787;border-radius:3px;color:#2f4223;background:#f9faf1;box-shadow:none;text-align:left;line-height:1.4;font-size:18px;font-weight:500;white-space:normal}
 .mind-node span{display:block;overflow-wrap:anywhere}
-.mind-node small{display:block;margin-top:4px;font-size:10px;letter-spacing:.5px;color:#858e7b}
+.mind-node small{display:block;margin-top:5px;font-size:13px;letter-spacing:0;color:#586b49;font-weight:400}
 .mind-node:hover{background:#fffef6;border-color:#798c62;box-shadow:none}
 .mind-node:focus-visible{outline:3px solid #8a743e;outline-offset:4px}
-.mind-root{width:190px;min-height:76px;background:#3e4d34;border:1px solid #3e4d34;color:#f1f1df;font-size:17px;text-align:center}
+.mind-root{width:clamp(174px,20vw,228px);min-height:86px;background:#3e4d34;border:1px solid #3e4d34;color:#f1f1df;font-size:21px;text-align:center}
 .mind-root small{color:#c4cfb4}
 .mind-root:hover{background:#46583a;color:#fff}
-.mind-room{width:156px;background:#ededdf}
+.mind-room{width:clamp(156px,17vw,208px);background:#e9eddf}
 .mind-room.is-current{border:2px solid #708b58;background:#f9faed;color:#344a29}
 .mind-room.is-current small{color:#667f52}
 .mind-action{border-left:3px solid #b4a174}
 .mind-action small,.mind-solve small{color:#887953}
 .mind-evidence.is-recorded{background:#e4e8db;color:#57644b}
 .mind-evidence.is-recorded span:before{content:'✓ ';font-size:11px;color:#758767}
-.mind-node.needs-tool{border-style:dashed;background:#ebece3;color:#7b8370}
+.mind-node.needs-tool{border-style:dashed;background:#ebece3;color:#59634e}
+.mind-node.is-confirming{outline:3px solid #9e8955;outline-offset:3px}
 .mind-optional{border-style:dashed;color:#67755a;background:transparent}
 .mind-solve{border:2px solid #9d875b;background:#f4eedb;color:#67532c}
 .mind-foot{border-top:1px solid #c6ccb9;padding-top:12px;display:flex;align-items:center;justify-content:flex-end;gap:18px;font-size:12px;color:#79826e}
@@ -50,7 +60,7 @@ body.mind-mode{background:#e8e8de;color:#30382f}
 .map-menu{display:flex;flex-direction:column;gap:10px}
 .map-menu .button{text-align:left;white-space:normal}
 .map-photo{width:100%;max-height:360px;object-fit:contain}
-.mind-gesture-tip{padding:3px 7px;border-left:2px solid #afba9f;color:#67785a}
+.mind-gesture-tip{font-size:14px;padding:3px 10px;border-left:2px solid #9aaa87;color:#546746;margin:10px 0 0}
 .mind-node{touch-action:manipulation}
 .node-click-fx{position:fixed;z-index:1000;pointer-events:none;border-radius:3px;contain:layout paint;overflow:visible}
 .node-click-fx:before,.node-click-fx:after{content:'';position:absolute;pointer-events:none}
@@ -63,32 +73,33 @@ body.mind-mode{background:#e8e8de;color:#30382f}
 .fx-echo:after{width:35px;height:35px;left:calc(50% - 18px);top:calc(50% - 18px);border:1px solid #a59d79;border-radius:50%;animation:node-wave .6s .07s ease-out both}
 .fx-rain:before{width:1px;height:13px;left:25%;top:0;background:#a8b6a1;box-shadow:30px -4px #a8b6a1,65px 5px #a8b6a1,90px -8px #a8b6a1;animation:quiet-rain .5s ease-out both}
 .fx-city:before{inset:-5px;border:1px solid #a3ae94;background:repeating-linear-gradient(90deg,transparent 0 20px,#a3ae9435 20px 21px),repeating-linear-gradient(0deg,transparent 0 15px,#a3ae9435 15px 16px);animation:city-trace .55s ease-out both}
-.mind-entering .mind-lines .active-link{stroke-dasharray:700;animation:branch-grow .4s ease-out both}
-.mind-entering .mind-node{animation:node-arrive .35s ease-out both}
+/* Navigation must not move the map. All atmosphere is local to the clicked node. */
 @keyframes mirror-slip{0%{opacity:0;transform:translateX(-6px)}35%{opacity:.8}100%{opacity:0;transform:translateX(8px)}}
 @keyframes paper-open{0%{opacity:0;transform:scaleX(.2)}30%{opacity:.7}100%{opacity:0;transform:scaleX(1.06)}}
 @keyframes small-spark{0%{opacity:0;transform:rotate(-28deg) scale(.5)}25%{opacity:.8}100%{opacity:0;transform:rotate(-28deg) scale(1.6)}}
 @keyframes node-wave{0%{opacity:.65;transform:scale(.6)}100%{opacity:0;transform:scale(3)}}
 @keyframes quiet-rain{0%{opacity:0;transform:translateY(-8px)}30%{opacity:.7}100%{opacity:0;transform:translateY(30px)}}
 @keyframes city-trace{0%{opacity:0;clip-path:inset(0 100% 0 0)}35%{opacity:.6}100%{opacity:0;clip-path:inset(0 0 0 0)}}
-@keyframes branch-grow{from{stroke-dashoffset:700}to{stroke-dashoffset:0}}
-@keyframes node-arrive{from{opacity:.45;translate:7px 0}to{opacity:1;translate:0 0}}
 @media(prefers-reduced-motion:reduce){.node-click-fx{display:none}.mind-entering .mind-node,.mind-entering .mind-lines .active-link{animation:none}}
 .mind-mode .toast{max-width:calc(100vw - 40px)}
-@media(max-width:1000px) and (min-width:701px){.mind-node{width:174px;font-size:13px}.mind-room{width:142px}.mind-root{width:166px}}
-@media(max-width:700px){
+@media(max-width:1000px) and (min-width:851px){.mind-node{font-size:17px}.mind-root{font-size:19px}}
+@media(max-width:850px){
   .mind-mode main{width:calc(100% - 28px);margin:16px auto;padding:0}
   .mind-mode .topbar{padding:9px 14px;flex-wrap:wrap;gap:8px}
   .mind-mode .topbar-actions{gap:7px}
   .mind-mode .topbar #save-status{display:none}
-  .mind-heading{margin-bottom:10px}.mind-heading h1{font-size:21px}
-  .mind-toolbar{flex-wrap:wrap;gap:8px}.mind-toolbar>span{font-size:11px}
+  .mind-heading{margin-bottom:10px}.mind-heading h1{font-size:25px}
+  .mind-heading .quiet-button{padding:8px 10px;font-size:14px}
+  .mind-tools{gap:8px;margin:14px 0 18px;padding-bottom:14px}
+  .mind-tools button{flex:1 1 135px;font-size:16px;padding:9px 12px}
+  .mind-toolbar{flex-wrap:wrap;gap:12px;align-items:flex-start}
+  .mind-current h2{font-size:23px}.mind-context-actions{justify-content:flex-start;gap:8px}
   .mind-board{height:auto;display:flex;flex-direction:column;gap:10px;padding:12px 0 8px;margin:8px 0}
   .mind-lines{display:none}
-  .mind-node{position:relative;left:auto;top:auto;transform:none;width:calc(100% - 52px);min-height:48px;font-size:14px;margin-left:52px}
+  .mind-node{position:relative;left:auto;top:auto;transform:none;width:calc(100% - 42px);min-height:72px;font-size:18px;margin-left:42px}
   .mind-node:before{content:'';position:absolute;left:-26px;top:24px;width:25px;border-top:1px solid #b8c4aa}
   .mind-node:after{content:'';position:absolute;left:-26px;top:-11px;height:35px;border-left:1px solid #b8c4aa}
-  .mind-root{width:calc(100% - 10px);margin:0 0 4px;min-height:65px;text-align:left}
+  .mind-root{width:calc(100% - 10px);margin:0 0 4px;min-height:80px;text-align:left;font-size:21px}
   .mind-root:before,.mind-root:after{display:none}
   .mind-root{order:0}
   .mind-evidence,.mind-action,.mind-optional,.mind-solve{order:2}

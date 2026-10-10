@@ -23,9 +23,8 @@
     document.body.append(fx);setTimeout(()=>fx.remove(),650);
   }
   function enter(board){
-    if(!board||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    board.classList.add('mind-entering');
-    setTimeout(()=>board.classList.remove('mind-entering'),450);
+    // Kept as a compatibility hook. Never translate or fade unrelated nodes.
+    if(board)board.classList.remove('mind-entering');
   }
   return {kind,play,enter};
 });

@@ -3,6 +3,15 @@
   else root.InvestigationMap = factory(root.Cases, root.Progression);
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (C, P) {
   'use strict';
+  const ROW = 92, DOUBLE_CLICK_MS = 420;
+  // A redraw can replace the clicked button. Pair pointer clicks by location,
+  // not DOM identity, so navigation can be immediate without losing reading.
+  function secondClick(previous, current) {
+    return !!previous && !current.keyboard && current.time >= previous.time && current.time - previous.time <= DOUBLE_CLICK_MS &&
+      previous.caseId === current.caseId && previous.era === current.era &&
+      Math.hypot(current.x - previous.x, current.y - previous.y) <= 10;
+  }
+  function deferEntry(action) { return ['map-execute', 'case', 'goto'].includes(action); }
   const SHORT = {
     'take-fuse': '取保险丝', 'take-pin': '取发夹', 'take-receipt': '取纸票', 'take-glass': '取旧镜片',
     'mirror-route': '撬开镜框', 'unlock': '打开登记室', 'lamp-ticket': '纸票透光', 'mirror-ledger': '映照擦痕',
@@ -46,14 +55,14 @@
     if (available.some(a => !primary(a))) leaves.push({ id: 'optional', label: '验证与支路', type: 'optional', action: 'map-optional', value: '' });
     if (c.room === 'counter' && !c.solved && f.flags.includes(C.CONFIG[id].done)) leaves.push({ id: 'solve', label: '提交推理', type: 'solve', action: 'map-solve', value: '' });
     if (c.solved) leaves.push({ id: 'next', label: id === 'city' ? '决定城市去向' : '下一份案卷', type: 'solve', action: id === 'city' ? 'goto' : 'case', value: id === 'city' ? 'legacy' : C.ORDER[C.ORDER.indexOf(id) + 1] });
-    const height = Math.max(340, rooms.length * 66 + 60, leaves.length * 66 + 60);
+    const height = Math.max(340, rooms.length * ROW + 60, leaves.length * ROW + 60);
     const nodes = [{ id: 'case', label: d.name, type: 'root', action: 'map-intro', value: '', x: 128, y: height / 2 }];
     const edges = [];
     rooms.forEach((k, i) => {
-      nodes.push({ id: 'room:' + k, label: d.rooms[k].name, type: 'room', action: 'map-room', value: k, active: k === c.room, visited: f.visited.includes(k), x: 380, y: (height - (rooms.length - 1) * 66) / 2 + i * 66 });
+      nodes.push({ id: 'room:' + k, label: d.rooms[k].name, type: 'room', action: 'map-room', value: k, active: k === c.room, visited: f.visited.includes(k), x: 380, y: (height - (rooms.length - 1) * ROW) / 2 + i * ROW });
       edges.push({ from: 'case', to: 'room:' + k, active: k === c.room });
     });
-    leaves.forEach((n, i) => { nodes.push({ ...n, x: 676, y: (height - (leaves.length - 1) * 66) / 2 + i * 66 }); edges.push({ from: 'room:' + c.room, to: n.id, active: true }); });
+    leaves.forEach((n, i) => { nodes.push({ ...n, x: 676, y: (height - (leaves.length - 1) * ROW) / 2 + i * ROW }); edges.push({ from: 'room:' + c.room, to: n.id, active: true }); });
     return { nodes, edges, height, width: 820, activeRoom: c.room };
   }
   const RELATIONS = {
@@ -63,15 +72,15 @@
   };
   function notes(s) {
     const id = s.casebook.active, c = s.casebook.cases[id], d = C.DATA[id], groups = Object.entries(d.rooms).map(([k, r]) => ({ room: k, label: r.name, evidence: r.things.filter(k => c.found.includes(k)) })).filter(g => g.evidence.length);
-    const rows = groups.reduce((n, g) => n + Math.max(1, g.evidence.length), 0), height = Math.max(340, rows * 60 + 60), nodes = [{ id: 'case', label: '已记录证物', type: 'root', action: 'map-intro', value: '', x: 128, y: height / 2 }], edges = [];
-    let row = (height - (rows - 1) * 60) / 2;
+    const rows = groups.reduce((n, g) => n + Math.max(1, g.evidence.length), 0), height = Math.max(340, rows * ROW + 60), nodes = [{ id: 'case', label: '已记录证物', type: 'root', action: 'map-intro', value: '', x: 128, y: height / 2 }], edges = [];
+    let row = (height - (rows - 1) * ROW) / 2;
     for (const g of groups) {
       const roomId = 'room:' + g.room;
-      nodes.push({ id: roomId, label: g.label, type: 'room', action: 'map-room', value: g.room, x: 380, y: row + (g.evidence.length - 1) * 30 });
+      nodes.push({ id: roomId, label: g.label, type: 'room', action: 'map-room', value: g.room, x: 380, y: row + (g.evidence.length - 1) * ROW / 2 });
       edges.push({ from: 'case', to: roomId });
-      for (const k of g.evidence) { nodes.push({ id: 'evidence:' + k, label: d.evidence[k].name, type: 'evidence', action: 'map-read', value: k, done: true, x: 676, y: row }); edges.push({ from: roomId, to: 'evidence:' + k }); row += 60; }
+      for (const k of g.evidence) { nodes.push({ id: 'evidence:' + k, label: d.evidence[k].name, type: 'evidence', action: 'map-read', value: k, done: true, x: 676, y: row }); edges.push({ from: roomId, to: 'evidence:' + k }); row += ROW; }
     }
     return { nodes, edges, height, width: 820, relations: RELATIONS[id].filter(([a, b]) => c.found.includes(a) && c.found.includes(b)) };
   }
-  return { scene, notes, visibleRooms, path, move, actions, primary };
+  return { scene, notes, visibleRooms, path, move, actions, primary, secondClick, deferEntry, ROW, DOUBLE_CLICK_MS };
 });
