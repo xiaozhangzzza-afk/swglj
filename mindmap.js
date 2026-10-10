@@ -59,13 +59,13 @@
     if (c.solved) leaves.push({ id: 'next', label: id === 'city' ? '决定城市去向' : '下一份案卷', type: 'solve', action: id === 'city' ? 'goto' : 'case', value: id === 'city' ? 'legacy' : C.ORDER[C.ORDER.indexOf(id) + 1] });
     const elsewhere=rooms.filter(k=>k!==c.room),height = Math.max(340, elsewhere.length * ROW + 60, leaves.length * ROW + 60);
     const trace=id==='station'?(c.room==='hall'&&f.reasoning.marked?'powder':c.room==='bench'&&f.reasoning.answered?'water':''):'';
-    const nodes = [{ id:'room:'+c.room,label:d.rooms[c.room].name,type:'root',action:'map-room',value:c.room,active:true,x:380,y:height/2,sceneMark:trace,hint:trace==='powder'?'你在这里 · '+(f.reasoning.observations.includes('step')?'粉末线留下了脚印':'地面已留下粉末线'):trace==='water'?'你在这里 · 女人已合伞':'' }];
+    const nodes = [{ id:'room:'+c.room,label:d.rooms[c.room].name,type:'root',action:'map-room',value:c.room,active:true,x:128,y:height/2,sceneMark:trace,hint:trace==='powder'?'你在这里 · '+(f.reasoning.observations.includes('step')?'粉末线留下了脚印':'地面已留下粉末线'):trace==='water'?'你在这里 · 女人已合伞':'' }];
     const edges = [];
     elsewhere.forEach((k, i) => {
-      nodes.push({ id: 'room:' + k, label: d.rooms[k].name, type: 'room', action: 'map-room', value: k, visited: f.visited.includes(k), x:128,y:(height-(elsewhere.length-1)*ROW)/2+i*ROW });
-      edges.push({from:'room:'+k,to:'room:'+c.room,active:f.visited.includes(k)});
+      nodes.push({ id: 'room:' + k, label: d.rooms[k].name, type: 'room', action: 'map-room', value: k, visited: f.visited.includes(k), x:676,y:(height-(elsewhere.length-1)*ROW)/2+i*ROW });
+      edges.push({from:'room:'+c.room,to:'room:'+k,navigation:true,active:false});
     });
-    leaves.forEach((n, i) => { nodes.push({ ...n, x: 676, y: (height - (leaves.length - 1) * ROW) / 2 + i * ROW }); edges.push({ from: 'room:' + c.room, to: n.id, active: true }); });
+    leaves.forEach((n, i) => { nodes.push({ ...n, x:380, y: (height - (leaves.length - 1) * ROW) / 2 + i * ROW }); edges.push({ from: 'room:' + c.room, to: n.id, active: true }); });
     return { nodes, edges, height, width: 820, activeRoom: c.room };
   }
   function notes(s) {

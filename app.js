@@ -132,7 +132,7 @@
     const byId = Object.fromEntries(model.nodes.map(n => [n.id, n]));
     const lines = model.edges.map(e => {
       const a = byId[e.from], b = byId[e.to], start = a.x + (a.type === 'root' ? 95 : 78), end = b.x - (b.type === 'room' ? 78 : 96), mid = (start + end) / 2;
-      return '<path data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '"' + (e.relation?' data-relation="true"':'') + ' class="' + (e.active ? 'active-link ' : '') + (e.relation?'relation-link ':'') + (e.pending?'pending-link':'') + '" d="M ' + start + ' ' + a.y + ' C ' + mid + ' ' + a.y + ', ' + mid + ' ' + b.y + ', ' + end + ' ' + b.y + '"/>';
+      return '<path data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '"' + (e.relation?' data-relation="true"':'') + (e.navigation?' data-navigation="true"':'') + ' class="' + (e.active ? 'active-link ' : '') + (e.relation?'relation-link ':'') + (e.navigation?'navigation-link ':'') + (e.pending?'pending-link':'') + '" d="M ' + start + ' ' + a.y + ' C ' + mid + ' ' + a.y + ', ' + mid + ' ' + b.y + ', ' + end + ' ' + b.y + '"/>';
     }).join('');
     return '<div class="mind-board" style="--board-height:' + model.height + 'px" role="group" aria-label="可交互调查思维导图"><svg class="mind-lines" viewBox="0 0 820 ' + model.height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + model.nodes.map(mapNode).join('') + '</div>';
   }
@@ -168,7 +168,8 @@
     for (const path of svg.querySelectorAll('path[data-from]')) {
       const from = $('mind-' + path.dataset.from), to = $('mind-' + path.dataset.to); if (!from || !to) continue;
       const a = from.getBoundingClientRect(), b = to.getBoundingClientRect(), x1 = a.right - bounds.left, x2 = b.left - bounds.left, y1 = a.top + a.height / 2 - bounds.top, y2 = b.top + b.height / 2 - bounds.top, mid = (x1 + x2) / 2;
-      if(path.dataset.relation){const end=b.right-bounds.left,side=Math.min(bounds.width-5,Math.max(x1,end)+38);path.setAttribute('d','M '+x1+' '+y1+' C '+side+' '+y1+', '+side+' '+y2+', '+end+' '+y2);}
+      if(path.dataset.navigation){const lane=x1+25,entry=x2-25;path.setAttribute('d','M '+x1+' '+y1+' H '+lane+' V 12 H '+entry+' V '+y2+' H '+x2);}
+      else if(path.dataset.relation){const end=b.right-bounds.left,side=Math.min(bounds.width-5,Math.max(x1,end)+38);path.setAttribute('d','M '+x1+' '+y1+' C '+side+' '+y1+', '+side+' '+y2+', '+end+' '+y2);}
       else path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + mid + ' ' + y1 + ', ' + mid + ' ' + y2 + ', ' + x2 + ' ' + y2);
     }
   }
@@ -204,8 +205,8 @@
     }
     if(!children.length)children.push({label:'继续调查',type:'room',action:'map-back',value:''});
     const record=f.action==='map-result'&&C.actionRecord(state,f.value,c.room),completed=C.actions(state).find(a=>a.id===f.value&&a.done);
-    const height=Math.max(340,children.length*M.ROW+60),nodes=[{id:'parent',label:'返回现场',type:'room',action:'map-back',value:'',x:128,y:height/2},{id:'focus',label:f.label,type:'root',action:f.action,value:f.value,hint:record||completed?'已完成 · 双击回看':'',x:380,y:height/2}],edges=[{from:'parent',to:'focus',active:true}];
-    children.forEach((n,i)=>{nodes.push({...n,id:'child:'+i,x:676,y:(height-(children.length-1)*M.ROW)/2+i*M.ROW});edges.push({from:'focus',to:'child:'+i,active:true});});
+    const height=Math.max(340,children.length*M.ROW+60),nodes=[{id:'focus',label:f.label,type:'root',action:f.action,value:f.value,hint:record||completed?'已完成 · 双击回看':'',x:128,y:height/2},{id:'parent',label:'返回现场',type:'room',action:'map-back',value:'',x:676,y:height/2}],edges=[{from:'focus',to:'parent',navigation:true}];
+    children.forEach((n,i)=>{nodes.push({...n,id:'child:'+i,x:380,y:(height-(children.length-1)*M.ROW)/2+i*M.ROW});edges.push({from:'focus',to:'child:'+i,active:true});});
     return {nodes,edges,width:820,height};
   }
   function enterMapNode(action,value,label) {
