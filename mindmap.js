@@ -1,5 +1,5 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./depth.js'), require('./progression.js'));
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./investigation.js'), require('./progression.js'));
   else root.InvestigationMap = factory(root.Cases, root.Progression);
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (C, P) {
   'use strict';
@@ -51,25 +51,21 @@
     const id = s.casebook.active, c = s.casebook.cases[id], d = C.DATA[id], f = C.field(c), rooms = visibleRooms(s);
     const leaves = d.rooms[c.room].things.filter((k, i) => P.has(s, 'map') || i === 0 || c.found.includes(d.rooms[c.room].things[0])).map(k => ({ id: 'evidence:' + k, label: d.evidence[k].name.replace('女人留下的', '').replace('提伞女人的证词', '提伞女人'), type: 'evidence', action: 'inspect', value: k, done: c.found.includes(k) }));
     const available = actions(s);
-    for (const a of available.filter(primary)) leaves.push({ id: 'action:' + a.id, label: shortLabel(a, id), type: 'action', action: 'map-action', value: a.id, reason: a.reason || '' });
+    const operations=P.has(s,'map')?C.actions(s).filter(primary):[];
+    for (const a of operations) leaves.push({ id: 'action:' + a.id, label: shortLabel(a, id), type: 'action', action: a.done?'map-result':'map-action', value: a.id, done:a.done, hint:a.done?(a.id.startsWith('take-')?'已取得':a.id==='power'?'已接通':a.id==='unlock'||a.id==='mirror-route'?'通路已打开':'已完成'):'', reason: a.done?'':a.reason || '' });
     if (available.some(a => !primary(a))) leaves.push({ id: 'optional', label: '验证与支路', type: 'optional', action: 'map-optional', value: '' });
     if (c.room === 'counter' && !c.solved && f.flags.includes(C.CONFIG[id].done)) leaves.push({ id: 'solve', label: '提交推理', type: 'solve', action: 'map-solve', value: '' });
     if (c.solved) leaves.push({ id: 'next', label: id === 'city' ? '决定城市去向' : '下一份案卷', type: 'solve', action: id === 'city' ? 'goto' : 'case', value: id === 'city' ? 'legacy' : C.ORDER[C.ORDER.indexOf(id) + 1] });
-    const height = Math.max(340, rooms.length * ROW + 60, leaves.length * ROW + 60);
-    const nodes = [{ id: 'case', label: d.name, type: 'root', action: 'map-intro', value: '', x: 128, y: height / 2 }];
+    const elsewhere=rooms.filter(k=>k!==c.room),height = Math.max(340, elsewhere.length * ROW + 60, leaves.length * ROW + 60);
+    const nodes = [{ id:'room:'+c.room,label:d.rooms[c.room].name,type:'root',action:'map-room',value:c.room,active:true,x:380,y:height/2 }];
     const edges = [];
-    rooms.forEach((k, i) => {
-      nodes.push({ id: 'room:' + k, label: d.rooms[k].name, type: 'room', action: 'map-room', value: k, active: k === c.room, visited: f.visited.includes(k), x: 380, y: (height - (rooms.length - 1) * ROW) / 2 + i * ROW });
-      edges.push({ from: 'case', to: 'room:' + k, active: k === c.room });
+    elsewhere.forEach((k, i) => {
+      nodes.push({ id: 'room:' + k, label: d.rooms[k].name, type: 'room', action: 'map-room', value: k, visited: f.visited.includes(k), x:128,y:(height-(elsewhere.length-1)*ROW)/2+i*ROW });
+      edges.push({from:'room:'+k,to:'room:'+c.room,active:f.visited.includes(k)});
     });
     leaves.forEach((n, i) => { nodes.push({ ...n, x: 676, y: (height - (leaves.length - 1) * ROW) / 2 + i * ROW }); edges.push({ from: 'room:' + c.room, to: n.id, active: true }); });
     return { nodes, edges, height, width: 820, activeRoom: c.room };
   }
-  const RELATIONS = {
-    station: [['notice', 'ticket', '柜号在前'], ['ticket', 'ledger', '拼合取件信息'], ['mirror', 'ledger', '比对失物描述'], ['woman', 'handwriting', '核对认领者']],
-    tuesday: [['sign', 'memo', '离开方向'], ['tape', 'memo', '进路与归路'], ['labels', 'lever', '门只经过一次']],
-    city: [['label', 'files', '登记先后'], ['files', 'manual', '历史顺序'], ['coat', 'letter', '身份线索']]
-  };
   function notes(s) {
     const id = s.casebook.active, c = s.casebook.cases[id], d = C.DATA[id], groups = Object.entries(d.rooms).map(([k, r]) => ({ room: k, label: r.name, evidence: r.things.filter(k => c.found.includes(k)) })).filter(g => g.evidence.length);
     const rows = groups.reduce((n, g) => n + Math.max(1, g.evidence.length), 0), height = Math.max(340, rows * ROW + 60), nodes = [{ id: 'case', label: '已记录证物', type: 'root', action: 'map-intro', value: '', x: 128, y: height / 2 }], edges = [];
@@ -80,7 +76,9 @@
       edges.push({ from: 'case', to: roomId });
       for (const k of g.evidence) { nodes.push({ id: 'evidence:' + k, label: d.evidence[k].name, type: 'evidence', action: 'map-read', value: k, done: true, x: 676, y: row }); edges.push({ from: roomId, to: 'evidence:' + k }); row += ROW; }
     }
-    return { nodes, edges, height, width: 820, relations: RELATIONS[id].filter(([a, b]) => c.found.includes(a) && c.found.includes(b)) };
+    const confirmed=C.deductionEntries(s);
+    confirmed.forEach(r=>edges.push({from:'evidence:'+r.a,to:'evidence:'+r.b,relation:true,active:true}));
+    return { nodes, edges, height, width: 820, relations:confirmed.map(r=>[r.a,r.b,r.label]) };
   }
   return { scene, notes, visibleRooms, path, move, actions, primary, secondClick, deferEntry, ROW, DOUBLE_CLICK_MS };
 });

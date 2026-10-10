@@ -40,6 +40,26 @@ body.mind-mode{background:#e8e8de;color:#30382f}
 .mind-root{width:clamp(174px,20vw,228px);min-height:86px;background:#3e4d34;border:1px solid #3e4d34;color:#f1f1df;font-size:21px;text-align:center}
 .mind-root small{color:#c4cfb4}
 .mind-root:hover{background:#46583a;color:#fff}
+.mind-root.is-current{border:2px solid #31452b;background:#3e5132;color:#fff;min-height:94px;font-size:23px}
+.mind-root.is-current small{color:#d2dfc7}
+.mind-action.is-recorded{border-color:#a6b798;background:#e4eadb;color:#546547}
+.mind-action.is-recorded span:before{content:'✓ ';color:#5b7844;font-size:14px}
+.mind-action.is-recorded small{color:#486138}
+.mind-node.is-link-selected{outline:3px solid #9a7d3f;outline-offset:3px}
+.mind-lines .relation-link{stroke:#997632;stroke-width:2.2}
+.mind-lines .pending-link{stroke:#8e9682;stroke-dasharray:5 5;stroke-width:1.5}
+.mind-objective{margin:12px 0 4px;font-size:16px;line-height:1.6;color:#3d5032;max-width:60em}
+.mind-objective>span{font-size:13px;color:#68795b;margin-right:12px}
+.mind-link-draft{border-left:3px solid #9a7d3f;padding:12px 16px;background:#f4f2e6;margin:14px 0}
+.link-pair{display:flex;align-items:center;flex-wrap:wrap;gap:12px;font-size:17px}
+.link-pair strong{font-weight:500}.link-pair>span{color:#91703b}
+.mind-link-draft p{font-size:14px;line-height:1.7;margin:8px 0;color:#56634a}
+.link-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.link-controls label{font-size:14px;color:#56634a}
+.link-controls select{min-height:44px;font-size:16px;border:1px solid #a6b399;background:#fffef5;color:#394b2e;padding:8px 12px;max-width:100%}
+.mind-link-draft .link-feedback{color:#453a21;font-size:16px;padding-top:10px;border-top:1px solid #c8c0a6}
+.map-record{padding:13px 0;border-bottom:1px solid var(--line);font-size:16px}
+.map-record summary{cursor:pointer;line-height:1.7}.map-record small{display:block;font-size:13px;color:var(--muted)}
 .mind-room{width:clamp(156px,17vw,208px);background:#e9eddf}
 .mind-room.is-current{border:2px solid #708b58;background:#f9faed;color:#344a29}
 .mind-room.is-current small{color:#667f52}

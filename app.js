@@ -7,7 +7,7 @@
   const $ = id => document.getElementById(id);
   const esc = x => String(x).replace(/[&<>"']/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[x]);
   const fmt = n => n >= 10000 ? (n / 1000).toFixed(1) + 'k' : n >= 100 ? Math.floor(n).toString() : Math.floor(n * 10) / 10 + '';
-  let state, tab = 'case', boardMode = 'site', mapFocus = null, lastMapResult = null, nodeClickTimer, lastNodeGesture = null, lastStructure = '', lastView = '', lastJournal = '', lastEvent = '', introOpen = false, toastTimer, saveAvailable = true, owner = true, lastTick = Date.now(), lastSave = 0, pendingImport = null;
+  let state, tab = 'case', boardMode = 'site', mapFocus = null, lastMapResult = null, linkDraft = null, linkFeedback = '', nodeClickTimer, lastNodeGesture = null, lastStructure = '', lastView = '', lastJournal = '', lastEvent = '', introOpen = false, toastTimer, saveAvailable = true, owner = true, lastTick = Date.now(), lastSave = 0, pendingImport = null;
   function warn(message) { $('storage-warning').hidden = false; $('storage-warning').textContent = message; }
   function deserialize(raw) { const data = typeof raw === 'string' ? JSON.parse(raw) : raw; const s = B.restore(data); const rng = s.rng; C.hydrate(s, data.casebook); s.rng = rng; return s; }
   function claim(force = false) {
@@ -87,10 +87,11 @@
     if (!intro) {
       const g = currentGuide(); body += '<div class="guide-section"><h3>此刻该做什么</h3><p>' + g.title + '：' + g.text + '</p></div><div class="guide-section"><h3>经营怎么帮调查</h3><p>按“招聘 → 分配岗位 → 检查库存每秒变化”的顺序建立生产链。收件员给分拣员供料；线索可以造墨、追忆，记忆与墨可以装订现实锚。研究和藏品提高效率。</p><p>经营、回访都是主线之外的选择。三个主线案件直接提供核心技术，避免卡在资源等待上。满库时对应加工会停止，缺原料也会停止；负的每秒速率说明消耗多于生产。</p></div><div class="guide-section"><h3>几个要记住的词</h3><dl class="glossary"><dt>证物</dt><dd>现场的文字线索，保存在笔记里；不消耗、不必反复拾取。</dd><dt>线索</dt><dd>局内生产用的资源，和现场证物不同。来自失物分拣，消耗于研究与加工。</dd><dt>记忆</dt><dd>追回的过去。满库比例越高，现实负担越重；可以加工成现实锚，也能主动遗忘。</dd><dt>稳定度</dt><dd>现实能否容纳这些过去。低于 35 时生产变慢；不会强制失败或重开。</dd><dt>信任</dt><dd>员工对管理局的认同，影响产量。事件处置与社会方针会改变它。</dd><dt>藏品</dt><dd>随机得到的本轮被动加成。首轮主线每案必得一件；重复回访有保底。</dd><dt>回声</dt><dd>主动轮回时带走的永久成果。每点使全链生产 +3.5%，与永久传承叠加。</dd></dl></div><div class="guide-section"><h3>运气与失败</h3><p>案件参数每轮会变，但线索与正确答案一一对应。同局刷新不会重抽。错误推理只扣少量稳定，可以重新校验；三级提示免费。短程调查会随机发生干扰，仍至少带回一片碎片，稀有藏品也有保底。</p></div><div class="guide-section"><h3>时间与存档</h3><p>观察和推理没有倒计时。“暂停”只冻结自动生产、来访与外出倒计时，你仍能观察现场、阅读笔记与解谜。离开后最多补算两小时经营。</p><p>每十秒自动保存，也在操作后保存。建议用顶部“存档”导出备份；换浏览器或游戏地址时，再导入文件。</p></div>';
     }
+    if(!intro)body+='<div class="guide-section"><h3>亲手连接证物</h3><p>记录两件证物后，点“证物连线”，依次单击两件证物，再选择比较方式并验证。金色连线代表已确认关系；它不是自动画出的答案。纸面信息仍有缺失时，要先完成现场操作。连线错误不扣资源，不加经验，也不阻止结案。</p><p>“眼下目标”只提示调查方向，不给谜底。完成的现场操作会留下标记，详细结果和连线结论可在“现场记录”回看，刷新后仍保留。</p></div>';
     body += '<p>现场需要亲自拿取与使用道具、修复机关、沿相邻区域移动。仅填写正确答案不能跳过现场。每案至少七个区域，等级 4 / 8 / 12 还会开放额外侧室。</p><div class="button-row">' + button('带我体验 · 开启实操向导', 'guided-start', '', null, 'gold') + button(intro ? '自由开始调查' : '返回当前现场', 'start-investigation', '', null, 'secondary') + (!intro ? button('查看升级奖励', 'levels', '', null, 'secondary') : '') + '</div>';
     modal(intro ? '第一天值班 · 入职指引' : '玩法与操作指引', body);
   }
-  function evidenceContent(id, key) { const d = C.DATA[id].evidence[key], c = state.casebook.cases[id]; return '<p class="evidence-read">' + esc(d.read(c)) + '</p>' + (B.level(state) >= 4 ? '<p class="deep-note">辨识 / ' + esc(d.deep) + '</p>' : '') + '<p class="progress-label">已记入调查笔记。首次发现证物获得 8 经验。</p>'; }
+  function evidenceContent(id, key) { const d = C.DATA[id].evidence[key], c = state.casebook.cases[id]; return '<p class="evidence-read">' + esc(d.read(c)) + '</p>' + (B.level(state) >= 4 ? '<p class="deep-note">辨识 / ' + esc(d.deep) + '</p>' : '') + '<p class="progress-label">已记入调查笔记。每件证物仅首次记录获得 8 经验；重复阅读不加经验。</p>'; }
   function puzzleForm(id, c) {
     const select = (name, label, options) => '<div><label for="' + name + '">' + label + '</label><select id="' + name + '" name="' + name + '"><option value="">请选择</option>' + options.map(([v, t]) => '<option value="' + esc(v) + '">' + esc(t) + '</option>').join('') + '</select></div>';
     const owners = [['me', '我自己'], ['woman', '提伞女人'], ['citizens', '全体市民'], ['nobody', '无人']];
@@ -122,18 +123,21 @@
     return { title: step ? step[2] : action === 'inspect' ? '观察并记录证物' : '最后一步：亲自认领', text: step ? '点击下方现场操作。拿到的道具会留在背包，修复后的门锁会立即改变地图。' : action === 'inspect' ? '点亮的证物会打开观察记录。读完后关闭记录，向导会继续下一步。' : '参考调查笔记填写登记表。向导不替你填答案；遇到困难可以逐层查看提示。', action, value };
   }
   function mapNode(n) {
-    return '<button id="mind-' + esc(n.id) + '" class="mind-node mind-' + n.type + (n.active ? ' is-current' : '') + (n.done ? ' is-recorded' : '') + (n.reason ? ' needs-tool' : '') + '" data-do="' + esc(n.action) + '" data-value="' + esc(n.value) + '" style="--node-x:' + (n.x / 820 * 100) + '%;--node-y:' + n.y + 'px" aria-label="' + esc(n.label + (n.active ? '，当前地点' : n.done ? '，已记录' : n.reason ? '，需要前置条件' : '')) + '"' + (n.active ? ' aria-current="location"' : '') + '><span>' + esc(n.label) + '</span><small>' + (n.active ? '你在这里' : n.type === 'root' ? (n.id === 'focus' ? '双击阅读' : '案卷') : n.type === 'room' ? (n.visited ? '已到访' : '前往') : n.done ? '已记录' : n.reason ? '缺少条件 · 点开查看' : n.type === 'evidence' ? '观察' : n.type === 'optional' ? '可选' : '操作') + '</small></button>';
+    const selected=linkDraft&&n.type==='evidence'&&(linkDraft.a===n.value||linkDraft.b===n.value);
+    const hint=n.hint||(n.active?'你在这里':n.type==='root'?(n.id==='focus'?'双击阅读':'案卷'):n.type==='room'?(n.visited?'已到访':'前往'):n.done?'已记录':n.reason?'缺少条件 · 点开查看':n.type==='evidence'?'观察':n.type==='optional'?'可选':'操作');
+    return '<button id="mind-' + esc(n.id) + '" class="mind-node mind-' + n.type + (n.active ? ' is-current' : '') + (n.done ? ' is-recorded' : '') + (selected?' is-link-selected':'') + (n.reason ? ' needs-tool' : '') + '" data-do="' + esc(n.action) + '" data-value="' + esc(n.value) + '" style="--node-x:' + (n.x / 820 * 100) + '%;--node-y:' + n.y + 'px" aria-label="' + esc(n.label + (n.active ? '，当前地点' : selected?'，连线已选中':n.done?'，'+hint:n.reason ? '，需要前置条件' : '')) + '"' + (n.active ? ' aria-current="location"' : '') + '><span>' + esc(n.label) + '</span><small>' + esc(selected?'已选中 · '+(linkDraft.a===n.value?'起点':'终点'):hint) + '</small></button>';
   }
   function renderMap(model) {
     const byId = Object.fromEntries(model.nodes.map(n => [n.id, n]));
     const lines = model.edges.map(e => {
       const a = byId[e.from], b = byId[e.to], start = a.x + (a.type === 'root' ? 95 : 78), end = b.x - (b.type === 'room' ? 78 : 96), mid = (start + end) / 2;
-      return '<path data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '" class="' + (e.active ? 'active-link' : '') + '" d="M ' + start + ' ' + a.y + ' C ' + mid + ' ' + a.y + ', ' + mid + ' ' + b.y + ', ' + end + ' ' + b.y + '"/>';
+      return '<path data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '"' + (e.relation?' data-relation="true"':'') + ' class="' + (e.active ? 'active-link ' : '') + (e.relation?'relation-link ':'') + (e.pending?'pending-link':'') + '" d="M ' + start + ' ' + a.y + ' C ' + mid + ' ' + a.y + ', ' + mid + ' ' + b.y + ', ' + end + ' ' + b.y + '"/>';
     }).join('');
     return '<div class="mind-board" style="--board-height:' + model.height + 'px" role="group" aria-label="可交互调查思维导图"><svg class="mind-lines" viewBox="0 0 820 ' + model.height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + model.nodes.map(mapNode).join('') + '</div>';
   }
   function renderCase() {
     const id = state.casebook.active, c = state.casebook.cases[id], d = C.DATA[id], model = mapFocus ? focusedMap() : boardMode === 'notes' ? M.notes(state) : M.scene(state);
+    if(linkDraft?.a&&linkDraft.b&&!mapFocus&&boardMode==='notes'&&!model.edges.some(e=>e.relation&&(e.from==='evidence:'+linkDraft.a&&e.to==='evidence:'+linkDraft.b||e.from==='evidence:'+linkDraft.b&&e.to==='evidence:'+linkDraft.a)))model.edges.push({from:'evidence:'+linkDraft.a,to:'evidence:'+linkDraft.b,relation:true,pending:true});
     const g = state.ui.walkthrough ? walkthrough() : null;
     let html = '<section class="mind-game"><header class="mind-heading"><div><span class="tiny-label">失物管理局 / 案卷 ' + d.number + '</span><h1>' + esc(d.name) + '</h1></div><button class="quiet-button" data-do="map-menu">案卷与更多</button></header>';
     html += '<nav class="mind-tools" aria-label="调查与成长"><button data-do="map-view" data-value="site" aria-pressed="' + (boardMode === 'site') + '">现场调查</button>' + (P.has(state, 'notebook') ? '<button data-do="map-view" data-value="notes" aria-pressed="' + (boardMode === 'notes') + '">证物笔记</button>' : '') + (P.has(state, 'inventory') ? '<button data-do="map-bag">随身道具 · ' + C.field(c).items.length + '</button>' : '') + (P.has(state, 'career') ? '<button data-do="levels">等级与奖励 <span data-field-level>Lv.' + B.level(state) + '</span></button>' : '') + (P.has(state, 'work') ? '<button data-do="map-office" id="field-event-status">局内经营</button>' : '') + '<button data-do="guide">玩法指引</button></nav>';
@@ -143,11 +147,15 @@
       const a = mapFocus.action === 'map-action' && M.actions(state).find(a => a.id === mapFocus.value);
       if (a && !a.reason) html += '<button class="mind-tool-button primary" data-do="map-confirm" data-value="' + esc(a.id) + '">执行操作</button>';
     }
+    if(c.found.length>=2&&!linkDraft)html+='<button class="mind-tool-button" data-do="map-link-start">证物连线</button>';
+    if(C.history(state).length)html+='<button class="mind-tool-button" data-do="map-history">现场记录 · '+C.history(state).length+'</button>';
     html += '<button class="mind-tool-button" data-do="map-hint">调查提示</button></div></div><p class="mind-gesture-tip">单击立即进入 · 双击显示文字</p>';
+    html+='<p class="mind-objective"><span>眼下目标</span>'+esc(C.goal(state))+'</p>';
+    if(linkDraft)html+=renderLinkDraft();
     if (g) html += '<p class="mind-guide" role="status">' + esc(g.title) + ' <button data-do="walkthrough" class="text-button">收起引导</button></p>';
     html += renderMap(model);
     if (boardMode === 'notes' && !c.found.length) html += '<p class="mind-empty">还没有证物，先回到现场观察。</p>';
-    if (boardMode === 'notes' && model.relations?.length) html += '<button class="text-button" data-do="map-relations">已发现的关系 · ' + model.relations.length + '</button>';
+    if (boardMode === 'notes' && model.relations?.length) html += '<button class="mind-tool-button" data-do="map-relations">已验证连线 · ' + model.relations.length + '</button>';
     html += '<div class="mind-foot"><span>' + (boardMode === 'site' ? esc(d.rooms[c.room].name) : c.found.length + ' 件记录') + '</span><span>调查进度自动保存</span></div></section>';
     return html;
   }
@@ -158,8 +166,17 @@
     for (const path of svg.querySelectorAll('path[data-from]')) {
       const from = $('mind-' + path.dataset.from), to = $('mind-' + path.dataset.to); if (!from || !to) continue;
       const a = from.getBoundingClientRect(), b = to.getBoundingClientRect(), x1 = a.right - bounds.left, x2 = b.left - bounds.left, y1 = a.top + a.height / 2 - bounds.top, y2 = b.top + b.height / 2 - bounds.top, mid = (x1 + x2) / 2;
-      path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + mid + ' ' + y1 + ', ' + mid + ' ' + y2 + ', ' + x2 + ' ' + y2);
+      if(path.dataset.relation){const end=b.right-bounds.left,side=Math.min(bounds.width-5,Math.max(x1,end)+38);path.setAttribute('d','M '+x1+' '+y1+' C '+side+' '+y1+', '+side+' '+y2+', '+end+' '+y2);}
+      else path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + mid + ' ' + y1 + ', ' + mid + ' ' + y2 + ', ' + x2 + ' ' + y2);
     }
+  }
+  function renderLinkDraft(){
+    const d=C.DATA[state.casebook.active],name=k=>k?d.evidence[k].name:'选择一件证物';
+    return '<section class="mind-link-draft" aria-label="证物连线操作"><div class="link-pair"><strong>'+esc(name(linkDraft.a))+'</strong><span>↔</span><strong>'+esc(name(linkDraft.b))+'</strong></div><p>依次单击两件已记录证物，选择比较方式。双击仍可回看文字；错误不扣资源，也不影响结案。</p><div class="link-controls"><label for="link-method">比较方式</label><select id="link-method">'+Object.entries(C.METHODS).map(([key,label])=>'<option value="'+key+'"'+(linkDraft.method===key?' selected':'')+'>'+esc(label)+'</option>').join('')+'</select><button class="mind-tool-button primary" data-do="map-link-confirm"'+(!linkDraft.a||!linkDraft.b?' disabled':'')+'>验证连线</button><button class="mind-tool-button" data-do="map-link-cancel">结束连线</button></div>'+(linkFeedback?'<p class="link-feedback" role="status">'+esc(linkFeedback)+'</p>':'')+'</section>';
+  }
+  function showMapHistory(){
+    const d=C.DATA[state.casebook.active],entries=C.history(state);
+    modal('现场记录',entries.length?entries.map(r=>'<details class="map-record"><summary>'+esc((r.ok?'✓ ':'待核对 · ')+r.label)+'<small>'+esc(d.rooms[r.room].name)+'</small></summary><p class="evidence-read">'+esc(r.message)+'</p></details>').join(''):'<p>亲自操作现场后，发现和结果会保存在这里，刷新后仍可回看。</p>');
   }
   function focusedMap() {
     const id=state.casebook.active,c=state.casebook.cases[id],d=C.DATA[id],f=mapFocus,available=M.actions(state),names={experiment:'现场验证',truth:'寄存人核验',ability:'能力与支路'};
@@ -174,15 +191,24 @@
       for(const [a,b] of M.notes(state).relations){const other=a===f.value?b:b===f.value?a:null;if(other)children.push({label:d.evidence[other].name,type:'evidence',action:'map-read',value:other,done:true});}
     }
     if(!children.length)children.push({label:'继续调查',type:'room',action:'map-back',value:''});
-    const height=Math.max(340,children.length*M.ROW+60),nodes=[{id:'parent',label:'返回现场',type:'room',action:'map-back',value:'',x:128,y:height/2},{id:'focus',label:f.label,type:'root',action:f.action,value:f.value,x:380,y:height/2}],edges=[{from:'parent',to:'focus',active:true}];
+    const record=f.action==='map-result'&&C.actionRecord(state,f.value,c.room),completed=C.actions(state).find(a=>a.id===f.value&&a.done);
+    const height=Math.max(340,children.length*M.ROW+60),nodes=[{id:'parent',label:'返回现场',type:'room',action:'map-back',value:'',x:128,y:height/2},{id:'focus',label:f.label,type:'root',action:f.action,value:f.value,hint:record||completed?'已完成 · 双击回看':'',x:380,y:height/2}],edges=[{from:'parent',to:'focus',active:true}];
     children.forEach((n,i)=>{nodes.push({...n,id:'child:'+i,x:676,y:(height-(children.length-1)*M.ROW)/2+i*M.ROW});edges.push({from:'focus',to:'child:'+i,active:true});});
     return {nodes,edges,width:820,height};
   }
   function enterMapNode(action,value,label) {
+    if(action==='map-read'&&linkDraft&&boardMode==='notes'){
+      const c=state.casebook.cases[state.casebook.active];if(!c.found.includes(value))return;
+      if(linkDraft.a===value){linkDraft.a=linkDraft.b;linkDraft.b=null;}
+      else if(linkDraft.b===value)linkDraft.b=null;
+      else if(!linkDraft.a)linkDraft.a=value;
+      else linkDraft.b=value;
+      linkFeedback='';render(true);return;
+    }
     if(action==='map-room'){
       if(!owner)return toast('请先在存档中接管本页值班。');
       const r=M.move(state,value);if(!r.ok)return toast(r.message);
-      mapFocus=null;boardMode='site';render(true);FX.enter(document.querySelector('.mind-board'));save();return;
+      mapFocus=null;linkDraft=null;boardMode='site';render(true);FX.enter(document.querySelector('.mind-board'));save();return;
     }
     if(action==='map-back'||action==='map-intro'){mapFocus=null;render(true);return;}
     if(action==='map-execute'){
@@ -192,14 +218,14 @@
       if(!owner)return toast('请先接管本页值班。');
       const r=C.act(state,'interact',value);
       lastMapResult={caseId:state.casebook.active,value,message:r.message||'操作已完成。'};
-      mapFocus={action:'map-action',value,label:a.label.split(' · ')[0],caseId:state.casebook.active,era:state.era};
-      render();save();return toast(r.ok?'已执行 · 双击节点查看发现':'未成功 · 双击节点查看发现');
+      mapFocus={action:r.ok?'map-result':'map-action',value,label:a.label.split(' · ')[0],caseId:state.casebook.active,era:state.era};
+      render();save();return toast(r.ok?'已完成 · 结果已保存在现场记录':'未成功 · 可回看现场记录后重试');
     }
     if(action==='case'||action==='goto'){
       if(action==='goto'){if(!P.has(state,value))return;tab=value;mapFocus=null;render(true);return;}
       if(!owner)return toast('请先接管本页值班。');
       const r=C.act(state,'case',value);if(!r.ok)return toast(r.message);
-      mapFocus=null;boardMode='site';lastMapResult=null;render(true);save();return;
+      mapFocus=null;linkDraft=null;boardMode='site';lastMapResult=null;render(true);save();return;
     }
     mapFocus={action,value,label,caseId:state.casebook.active,era:state.era};render(true);FX.enter(document.querySelector('.mind-board'));
   }
@@ -215,8 +241,8 @@
       if(c.found.includes(value))modal(d.evidence[value].name,evidenceContent(id,value));
       return;
     }
-    if(action==='map-action'||action==='map-execute'){
-      const a=C.actions(state).find(a=>a.id===value),record=lastMapResult?.caseId===id&&lastMapResult.value===value?lastMapResult.message:null;
+    if(action==='map-action'||action==='map-execute'||action==='map-result'){
+      const a=C.actions(state).find(a=>a.id===value),record=C.actionRecord(state,value,c.room)?.message||(lastMapResult?.caseId===id&&lastMapResult.value===value?lastMapResult.message:null)||(a?.done?'此步骤已完成。旧存档保留了完成状态，但没有当时的详细文字记录。':null);
       return modal(label,'<p class="evidence-read">'+esc(record||a?.reason||'单击进入此分支，再点击“执行操作”。阅读本身不会使用道具或推进机关。')+'</p>');
     }
     if(action==='map-solve'){if(c.room==='counter'&&C.field(c).flags.includes(C.CONFIG[id].done)&&!c.solved)modal('提交推理',puzzleForm(id,c));return;}
@@ -302,6 +328,7 @@
   function render(force = false) {
     const unlocked = P.refresh(state);
     if(mapFocus&&(mapFocus.caseId!==state.casebook.active||mapFocus.era!==state.era))mapFocus=null;
+    if(linkDraft&&(linkDraft.caseId!==state.casebook.active||linkDraft.era!==state.era)){linkDraft=null;linkFeedback='';}
     if (!P.has(state, tab)) tab = 'case';
     document.body.classList.toggle('first-observation', !P.has(state, 'map'));
     document.body.classList.toggle('pre-career', !P.has(state, 'career'));
@@ -314,7 +341,7 @@
     if (unlocked.length) toast('新分支已出现：' + unlocked.map(k => P.NAMES[k]).join('、'));
     document.body.classList.toggle('field-mode', tab === 'case');
     document.body.classList.toggle('mind-mode', tab === 'case');
-    const structural = JSON.stringify([tab, boardMode, mapFocus, state.casebook, state.ui, state.tech, state.buildings, state.jobs, state.workers, state.artifacts, state.policy, state.expedition && state.expedition.site, B.level(state), state.paused]);
+    const structural = JSON.stringify([tab, boardMode, mapFocus, linkDraft, linkFeedback, state.casebook, state.ui, state.tech, state.buildings, state.jobs, state.workers, state.artifacts, state.policy, state.expedition && state.expedition.site, B.level(state), state.paused]);
     if (force || structural !== lastStructure) {
       const view = [tab, state.casebook.active, state.casebook.cases[state.casebook.active].room].join('|');
       const fields = view === lastView ? Array.from(document.querySelectorAll('#puzzle-form input, #puzzle-form select')).map(el => [el.id, el.value]) : [];
@@ -392,10 +419,22 @@
     }
     cancelNodeEntry(); lastNodeGesture = null;
     if (action === 'close-modal') return $('modal').close();
-    if (action === 'map-view') { if (!['site', 'notes'].includes(value) || value === 'notes' && !P.has(state, 'notebook')) return; clearTimeout(nodeClickTimer);mapFocus=null;boardMode=value;if(value==='notes'){state.ui.notebookOpened=true;save();}render(true);return; }
+    if (action === 'map-view') { if (!['site', 'notes'].includes(value) || value === 'notes' && !P.has(state, 'notebook')) return; clearTimeout(nodeClickTimer);mapFocus=null;linkDraft=null;linkFeedback='';boardMode=value;if(value==='notes'){state.ui.notebookOpened=true;save();}render(true);return; }
     if(action==='map-back'){mapFocus=null;render(true);return;}
     if(action==='map-focus-read'){if(mapFocus)readMapNode(mapFocus.action,mapFocus.value,mapFocus.label);return;}
     if(action==='map-confirm'){if(mapFocus?.action==='map-action'&&mapFocus.value===value)enterMapNode('map-execute',value,mapFocus.label);return;}
+    if(action==='map-history')return showMapHistory();
+    if(action==='map-link-start'){
+      if(!P.has(state,'notebook')||state.casebook.cases[state.casebook.active].found.length<2)return toast('先记录两件不同证物，再尝试连线。');
+      const first=mapFocus&&['inspect','map-read'].includes(mapFocus.action)&&state.casebook.cases[state.casebook.active].found.includes(mapFocus.value)?mapFocus.value:null;
+      linkDraft={a:first,b:null,method:'rule',caseId:state.casebook.active,era:state.era};linkFeedback='';mapFocus=null;boardMode='notes';state.ui.notebookOpened=true;render(true);save();return;
+    }
+    if(action==='map-link-cancel'){linkDraft=null;linkFeedback='';render(true);return;}
+    if(action==='map-link-confirm'){
+      if(!linkDraft||!owner)return toast('请先接管本页值班，再验证连线。');
+      linkDraft.method=$('link-method').value;
+      const r=C.act(state,'deduce',linkDraft);linkFeedback=(r.ok?'已确认：':'尚未确认：')+r.message;render(true);save();return;
+    }
     if (action === 'map-menu') return showMapMenu();
     if (action === 'map-intro') { const id = state.casebook.active; return modal(C.DATA[id].name, '<p>' + esc(C.DATA[id].intro) + '</p>' + (C.opening(state, id) ? '<p>' + esc(C.opening(state, id)) + '</p>' : '') + '<small>线条表示调查分支；点击地点会沿已开放的通路前往。</small>'); }
     if (action === 'map-cases') return modal('已开放的案卷', '<div class="map-menu">' + C.ORDER.filter(id => C.unlocked(state, id)).map(id => button(esc(C.DATA[id].name), 'case', id, null, 'secondary')).join('') + '</div>');
@@ -403,7 +442,7 @@
     if (action === 'map-office') return modal('管理局', '<div class="map-menu">' + ['work','staff','research','explore','legacy'].filter(k => P.has(state, k)).map(k => button(P.NAMES[k], 'goto', k, null, 'secondary')).join('') + '</div>');
     if (action === 'map-photo') { const photo = { station: 'lost-property-office-horror.png', tuesday: 'tuesday-corridor-horror.png', city: 'city-archive-horror.png' }[state.casebook.active]; return modal('现场留影', '<img class="map-photo" src="assets/' + photo + '" alt="当前案件的恐怖悬疑现场留影"><p>留影只提供氛围，不包含必要解谜信息。</p>'); }
     if (action === 'map-read') { const c = state.casebook.cases[state.casebook.active]; if (c.found.includes(value)) modal(C.DATA[state.casebook.active].evidence[value].name, evidenceContent(state.casebook.active, value)); return; }
-    if (action === 'map-relations') { const id = state.casebook.active; return modal('已知证物关系', M.notes(state).relations.map(([a,b,label]) => '<p>' + esc(C.DATA[id].evidence[a].name) + ' → ' + esc(label) + ' → ' + esc(C.DATA[id].evidence[b].name) + '</p>').join('')); }
+    if (action === 'map-relations') { const id = state.casebook.active; return modal('已验证的证物连线', C.deductionEntries(state).map(r => '<article class="map-record"><h3>'+esc(r.label)+'</h3><small>'+esc(C.DATA[id].evidence[r.a].name)+' ↔ '+esc(C.DATA[id].evidence[r.b].name)+'</small><p>'+esc(r.message)+'</p></article>').join('')); }
     if (action === 'map-hint') return showMapHint();
     if (action === 'map-optional') return showMapOptional();
     if (action === 'map-group') return showMapOptional(value);
@@ -430,11 +469,11 @@
     if (action === 'takeover') { claim(true); const raw = localStorage.getItem(KEY); if (raw) state = deserialize(raw); lastTick = Date.now(); $('storage-warning').hidden = true; $('modal').close(); render(true); return toast('本页开始值班。'); }
     if (!owner) return toast('另一个页面正在值班，请在设置中接管。');
     if (action === 'restore-backup') { try { pendingImport = deserialize(localStorage.getItem(BACKUP)); modal('恢复上次备份？', '<p>将覆盖当前进度。当前存档会先自动导出。</p>' + button('确认恢复', 'confirm-import', '', null, 'gold')); } catch { toast('没有可读取的自动备份。'); } return; }
-    if (action === 'confirm-import') { if (!pendingImport) return; exportData(); state = pendingImport; pendingImport = null; state.lastSaved = Date.now(); lastTick = Date.now(); $('modal').close(); save(); render(true); return toast('存档已载入。'); }
+    if (action === 'confirm-import') { if (!pendingImport) return; exportData(); state = pendingImport; pendingImport = null; mapFocus=null;linkDraft=null;linkFeedback='';state.lastSaved = Date.now(); lastTick = Date.now(); $('modal').close(); save(); render(true); return toast('存档已载入。'); }
     if (action === 'reset-dialog') return resetDialog();
     if (action === 'reset') { const next = B.reset(state, value); if (!next) return toast('尚未准备好遗忘协议。'); exportData(); state = C.hydrate(next); lastTick = Date.now(); tab = 'case'; $('modal').close(); save(); render(true); return toast('城市忘记了。你的资历和传承仍在。'); }
     if (action === 'new-dialog') return modal('重新开始所有进度？', '<p>这会清空等级、回声与传承，并新建第 1 轮。当前存档会先导出；请保留下载文件。</p>' + button('确认清空并新建', 'new-confirm', '', null, 'danger'));
-    if (action === 'new-confirm') { exportData(); state = C.hydrate(B.fresh()); tab = 'case'; lastTick = Date.now(); $('modal').close(); save(); render(true); return; }
+    if (action === 'new-confirm') { exportData(); state = C.hydrate(B.fresh()); tab = 'case';mapFocus=null;linkDraft=null;linkFeedback=''; lastTick = Date.now(); $('modal').close(); save(); render(true); return; }
     let result;
     if (['case', 'room', 'inspect', 'hint', 'interact'].includes(action)) { result = C.act(state, action, value); if (result.evidence) modal(C.DATA[state.casebook.active].evidence[value].name, evidenceContent(state.casebook.active, value)); }
     else if (action === 'job') result = B.act(state, 'job', { id: value, delta: Number(el.dataset.delta) });
@@ -446,7 +485,7 @@
   });
   document.addEventListener('dblclick',event=>{if(event.target.closest('.mind-board'))event.preventDefault();});
   document.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.shiftKey&&event.target.matches('.mind-node')){event.preventDefault();cancelNodeEntry();lastNodeGesture=null;const el=event.target;readMapNode(el.dataset.do,el.dataset.value,el.querySelector('span').textContent);}});
-  document.addEventListener('input', event => { if (event.target.id === 'help-query') { helpResults(event.target.value); $('help-answer').innerHTML = ''; } });
+  document.addEventListener('input', event => { if (event.target.id === 'help-query') { helpResults(event.target.value); $('help-answer').innerHTML = ''; } if(event.target.id==='link-method'&&linkDraft&&Object.hasOwn(C.METHODS,event.target.value))linkDraft.method=event.target.value; });
   document.addEventListener('submit', event => {
     if (event.target.id !== 'puzzle-form') return; event.preventDefault(); if (!owner) return toast('请先在设置中接管值班。');
     const data = new FormData(event.target), id = state.casebook.active;
