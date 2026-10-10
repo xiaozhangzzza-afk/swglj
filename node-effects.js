@@ -4,10 +4,10 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   function kind(caseId,action,value){
-    if(['mirror','glass','take-glass','mirror-route','mirror-ledger','truth-reflection','test-cover','test-watch'].includes(value))return 'mirror';
+    if(['mirror','glass','take-glass','mirror-route','mirror-ledger','truth-reflection','test-cover','test-watch','reason-still','reason-step','still-note','step-note'].includes(value))return 'mirror';
     if(['power','take-fuse','fuse','take-battery','battery','project','take-lens','lens'].includes(value))return 'electric';
     if(['ticket','receipt','take-receipt','ledger','handwriting','notice','lamp-ticket','truth-paper','files','manual','letter'].includes(value))return 'paper';
-    if(value==='tunnel'||value==='take-key'||value==='test-dust')return 'ripple';
+    if(value==='tunnel'||value==='take-key'||value==='test-dust'||value==='reason-mark'||value==='boundary')return 'ripple';
     if(caseId==='tuesday'&&(value.startsWith('sequence:')||['tape','rewind','echo','sign','memo'].includes(value)))return 'echo';
     if(caseId==='city'&&(['model','label','registry','authorize','projected'].includes(value)||value.startsWith('sequence:')))return 'city';
     if(action==='map-room')return value==='records'?'paper':caseId==='station'?'rain':caseId==='tuesday'?'echo':'city';

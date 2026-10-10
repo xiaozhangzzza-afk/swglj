@@ -91,7 +91,7 @@
     body += '<p>现场需要亲自拿取与使用道具、修复机关、沿相邻区域移动。仅填写正确答案不能跳过现场。每案至少七个区域，等级 4 / 8 / 12 还会开放额外侧室。</p><div class="button-row">' + button('带我体验 · 开启实操向导', 'guided-start', '', null, 'gold') + button(intro ? '自由开始调查' : '返回当前现场', 'start-investigation', '', null, 'secondary') + (!intro ? button('查看升级奖励', 'levels', '', null, 'secondary') : '') + '</div>';
     modal(intro ? '第一天值班 · 入职指引' : '玩法与操作指引', body);
   }
-  function evidenceContent(id, key) { const d = C.DATA[id].evidence[key], c = state.casebook.cases[id]; return '<p class="evidence-read">' + esc(d.read(c)) + '</p>' + (B.level(state) >= 4 ? '<p class="deep-note">辨识 / ' + esc(d.deep) + '</p>' : '') + '<p class="progress-label">已记入调查笔记。每件证物仅首次记录获得 8 经验；重复阅读不加经验。</p>'; }
+  function evidenceContent(id, key) { const d = C.DATA[id].evidence[key]; return '<p class="evidence-read">' + esc(C.readEvidence(state,key)) + '</p>' + (B.level(state) >= 4 ? '<p class="deep-note">辨识 / ' + esc(d.deep) + '</p>' : '') + '<p class="progress-label">'+(id==='station'&&Object.hasOwn(C.REASON_EVIDENCE,key)?'现场验证记录已保存；阅读与附查不额外奖励经验。':'已记入调查笔记。每件证物仅首次记录获得 8 经验；重复阅读不加经验。')+'</p>'; }
   function puzzleForm(id, c) {
     const select = (name, label, options) => '<div><label for="' + name + '">' + label + '</label><select id="' + name + '" name="' + name + '"><option value="">请选择</option>' + options.map(([v, t]) => '<option value="' + esc(v) + '">' + esc(t) + '</option>').join('') + '</select></div>';
     const owners = [['me', '我自己'], ['woman', '提伞女人'], ['citizens', '全体市民'], ['nobody', '无人']];
@@ -125,7 +125,8 @@
   function mapNode(n) {
     const selected=linkDraft&&n.type==='evidence'&&(linkDraft.a===n.value||linkDraft.b===n.value);
     const hint=n.hint||(n.active?'你在这里':n.type==='root'?(n.id==='focus'?'双击阅读':'案卷'):n.type==='room'?(n.visited?'已到访':'前往'):n.done?'已记录':n.reason?'缺少条件 · 点开查看':n.type==='evidence'?'观察':n.type==='optional'?'可选':'操作');
-    return '<button id="mind-' + esc(n.id) + '" class="mind-node mind-' + n.type + (n.active ? ' is-current' : '') + (n.done ? ' is-recorded' : '') + (selected?' is-link-selected':'') + (n.reason ? ' needs-tool' : '') + '" data-do="' + esc(n.action) + '" data-value="' + esc(n.value) + '" style="--node-x:' + (n.x / 820 * 100) + '%;--node-y:' + n.y + 'px" aria-label="' + esc(n.label + (n.active ? '，当前地点' : selected?'，连线已选中':n.done?'，'+hint:n.reason ? '，需要前置条件' : '')) + '"' + (n.active ? ' aria-current="location"' : '') + '><span>' + esc(n.label) + '</span><small>' + esc(selected?'已选中 · '+(linkDraft.a===n.value?'起点':'终点'):hint) + '</small></button>';
+    const statusClass=n.type==='evidence'?({'新发现':' evidence-new','待验证':' evidence-pending','已有结论':' evidence-concluded'}[hint]||''):'';
+    return '<button id="mind-' + esc(n.id) + '" class="mind-node mind-' + n.type + statusClass + (n.active ? ' is-current' : '') + (n.done ? ' is-recorded' : '') + (selected?' is-link-selected':'') + (n.reason ? ' needs-tool' : '') + '" data-do="' + esc(n.action) + '" data-value="' + esc(n.value) + '" style="--node-x:' + (n.x / 820 * 100) + '%;--node-y:' + n.y + 'px" aria-label="' + esc(n.label + (n.active ? '，当前地点' : selected?'，连线已选中':n.type==='evidence'||n.done?'，'+hint:n.reason ? '，需要前置条件' : '')) + '"' + (n.active ? ' aria-current="location"' : '') + '><span>' + esc(n.label) + '</span><small>' + esc(selected?'已选中 · '+(linkDraft.a===n.value?'起点':'终点'):hint) + '</small>'+(n.sceneMark?'<i class="scene-trace trace-'+esc(n.sceneMark)+'" aria-hidden="true"></i>':'')+'</button>';
   }
   function renderMap(model) {
     const byId = Object.fromEntries(model.nodes.map(n => [n.id, n]));
@@ -148,6 +149,7 @@
       if (a && !a.reason) html += '<button class="mind-tool-button primary" data-do="map-confirm" data-value="' + esc(a.id) + '">执行操作</button>';
     }
     if(c.found.length>=2&&!linkDraft)html+='<button class="mind-tool-button" data-do="map-link-start">证物连线</button>';
+    if(C.canHypothesize(state))html+='<button class="mind-tool-button" data-do="map-hypotheses">暂定猜测'+(C.hypothesisEntries(state).some(h=>h.status==='待验证')?' · 待验证':C.hypothesisEntries(state).some(h=>h.status==='已确认')?' · 已确认':'')+'</button>';
     if(C.history(state).length)html+='<button class="mind-tool-button" data-do="map-history">现场记录 · '+C.history(state).length+'</button>';
     html += '<button class="mind-tool-button" data-do="map-hint">调查提示</button></div></div><p class="mind-gesture-tip">单击立即进入 · 双击显示文字</p>';
     html+='<p class="mind-objective"><span>眼下目标</span>'+esc(C.goal(state))+'</p>';
@@ -178,17 +180,27 @@
     const d=C.DATA[state.casebook.active],entries=C.history(state);
     modal('现场记录',entries.length?entries.map(r=>'<details class="map-record"><summary>'+esc((r.ok?'✓ ':'待核对 · ')+r.label)+'<small>'+esc(d.rooms[r.room].name)+'</small></summary><p class="evidence-read">'+esc(r.message)+'</p></details>').join(''):'<p>亲自操作现场后，发现和结果会保存在这里，刷新后仍可回看。</p>');
   }
+  function showHypotheses(feedback=''){
+    if(!C.canHypothesize(state))return toast('先记录镜子与女人的证词。');
+    const q=C.field(state.casebook.cases.station).reasoning;
+    const cards=C.hypothesisEntries(state).map(h=>'<article class="hypothesis-card"><h3>'+esc(h.label)+' <small>'+esc(h.status)+'</small></h3><p>'+esc(h.prediction)+'</p>'+(h.adopted?h.status==='待验证'?'<div class="button-row"><button class="mind-tool-button" data-do="hypothesis-judge" data-value="'+h.id+':confirm"'+(!h.ready?' disabled':'')+'>确认这个解释</button><button class="mind-tool-button" data-do="hypothesis-judge" data-value="'+h.id+':refute"'+(!h.ready?' disabled':'')+'>推翻这个解释</button></div>'+(!h.ready?'<small>先亲自完成静止与迈步两次对照。</small>':''):'<small>原猜测与验证结果都保留，不会因改判丢失记录。</small>':button('保留这个猜测','hypothesis-adopt',h.id,null,'secondary'))+'</article>').join('');
+    const observations=['still','step'].filter(k=>q.observations.includes(k)).map(k=>'<details class="map-record"><summary>'+esc(C.REASON_EVIDENCE[k+'-note'].name)+'</summary><p>'+esc(C.REASON_EVIDENCE[k+'-note'].read())+'</p></details>').join('');
+    modal('暂定猜测 · 镜面附查','<p>猜测可以并存，但不是结论。用现场的两种条件检验，再决定保留还是推翻；不扣资源、不影响结案。</p>'+(feedback?'<p class="hypothesis-feedback" role="status">'+esc(feedback)+'</p>':'')+cards+observations+button('返回现场继续验证','hypothesis-return','',null,'secondary'));
+  }
   function focusedMap() {
-    const id=state.casebook.active,c=state.casebook.cases[id],d=C.DATA[id],f=mapFocus,available=M.actions(state),names={experiment:'现场验证',truth:'寄存人核验',ability:'能力与支路'};
-    const category=a=>a.group==='experiment'?'experiment':a.id.startsWith('truth-')?'truth':'ability';
+    const id=state.casebook.active,c=state.casebook.cases[id],d=C.DATA[id],f=mapFocus,available=M.actions(state),names={reasoning:'镜面附查',experiment:'现场验证',truth:'寄存人核验',ability:'能力与支路'};
+    const category=a=>a.group==='reasoning'?'reasoning':a.group==='experiment'?'experiment':a.id.startsWith('truth-')?'truth':'ability';
     let children=[];
     if(f.action==='map-optional') children=Object.keys(names).filter(k=>available.some(a=>!M.primary(a)&&category(a)===k)).map(k=>({label:names[k],type:'optional',action:'map-group',value:k}));
-    else if(f.action==='map-group') children=available.filter(a=>!M.primary(a)&&category(a)===f.value).map(a=>({label:a.label.split(' · ')[0],type:'action',action:'map-action',value:a.id,reason:a.reason}));
+    else if(f.action==='map-group'){
+      children=(f.value==='reasoning'?C.actions(state):available).filter(a=>!M.primary(a)&&category(a)===f.value).map(a=>({label:a.label.split(' · ')[0],type:'action',action:a.done?'map-result':'map-action',value:a.id,reason:a.done?'':a.reason,done:a.done,hint:a.done?'已完成':''}));
+      if(f.value==='reasoning')for(const k of C.visibleEvidence(state,c.room).filter(k=>Object.hasOwn(C.REASON_EVIDENCE,k)&&c.found.includes(k)))children.push({label:d.evidence[k].name,type:'evidence',action:'map-read',value:k,done:true,hint:C.evidenceStatus(state,k)});
+    }
     else if(f.action==='map-action'){
       const a=C.actions(state).find(a=>a.id===f.value);
       children.push(a&&!a.done?{label:'执行操作',type:'action',action:'map-execute',value:f.value,reason:a.reason}:{label:'继续调查',type:'room',action:'map-back',value:''});
     } else if(['inspect','map-read'].includes(f.action)) {
-      for(const [a,b] of M.notes(state).relations){const other=a===f.value?b:b===f.value?a:null;if(other)children.push({label:d.evidence[other].name,type:'evidence',action:'map-read',value:other,done:true});}
+      for(const [a,b] of M.notes(state).relations){const other=a===f.value?b:b===f.value?a:null;if(other)children.push({label:d.evidence[other].name,type:'evidence',action:'map-read',value:other,done:true,hint:C.evidenceStatus(state,other)});}
     }
     if(!children.length)children.push({label:'继续调查',type:'room',action:'map-back',value:''});
     const record=f.action==='map-result'&&C.actionRecord(state,f.value,c.room),completed=C.actions(state).find(a=>a.id===f.value&&a.done);
@@ -238,7 +250,7 @@
     }
     if(['inspect','map-read'].includes(action)){
       if(!c.found.includes(value)){if(!owner)return toast('请先接管本页值班。');const r=C.act(state,'inspect',value);if(!r.ok)return toast(r.message);render();save();}
-      if(c.found.includes(value))modal(d.evidence[value].name,evidenceContent(id,value));
+      if(c.found.includes(value)){if(owner){C.act(state,'read-evidence',value);render();save();}modal(d.evidence[value].name,evidenceContent(id,value));}
       return;
     }
     if(action==='map-action'||action==='map-execute'||action==='map-result'){
@@ -259,8 +271,9 @@
     modal('调查工具', '<div class="map-menu">' + button('当前案卷', 'map-intro', '', null, 'secondary') + button('切换案卷', 'map-cases', '', null, 'secondary') + button('带我体验', 'guided-start', '', null, 'secondary') + button('查阅玩法', 'help', '', null, 'secondary') + button('现场留影', 'map-photo', '', null, 'secondary') + button('存档与说明', 'settings', '', null, 'secondary') + '</div>');
   }
   function showMapOptional(group) {
-    const available = M.actions(state).filter(a => !M.primary(a)), category = a => a.group === 'experiment' ? 'experiment' : a.id.startsWith('truth-') ? 'truth' : 'ability';
-    const names = { experiment: '现场验证', truth: '寄存人核验', ability: '能力与支路' };
+    if(group==='reasoning'){$('modal').close();return enterMapNode('map-group','reasoning','镜面附查');}
+    const available = M.actions(state).filter(a => !M.primary(a)), category = a => a.group==='reasoning'?'reasoning':a.group === 'experiment' ? 'experiment' : a.id.startsWith('truth-') ? 'truth' : 'ability';
+    const names = { reasoning:'镜面附查',experiment: '现场验证', truth: '寄存人核验', ability: '能力与支路' };
     if (!group) return modal('可选调查', '<div class="map-menu">' + Object.keys(names).filter(k => available.some(a => category(a) === k)).map(k => button(names[k], 'map-group', k, null, 'secondary')).join('') + '</div>');
     const entries = available.filter(a => category(a) === group);
     modal(names[group] || '可选调查', '<div class="map-menu">' + entries.map(a => button(esc(a.label), 'map-action', a.id, null, 'secondary')).join('') + '</div>' + (group === 'experiment' ? '<small>试错也会留下信息，不影响结案。</small>' : '') + (state.casebook.active === 'station' && group === 'experiment' ? '<details class="experiment-record"><summary>已完成的验证记录</summary>' + C.experiments(state).map(r => '<p>' + esc(r.record) + '</p>').join('') + '</details>' : ''));
@@ -424,6 +437,14 @@
     if(action==='map-focus-read'){if(mapFocus)readMapNode(mapFocus.action,mapFocus.value,mapFocus.label);return;}
     if(action==='map-confirm'){if(mapFocus?.action==='map-action'&&mapFocus.value===value)enterMapNode('map-execute',value,mapFocus.label);return;}
     if(action==='map-history')return showMapHistory();
+    if(action==='map-hypotheses')return showHypotheses();
+    if(action==='hypothesis-adopt'){
+      if(!owner)return toast('请先接管本页值班。');const r=C.act(state,'hypothesis',value);save();render(true);return showHypotheses(r.message);
+    }
+    if(action==='hypothesis-judge'){
+      if(!owner)return toast('请先接管本页值班。');const [id,verdict]=value.split(':');const r=C.act(state,'judge-hypothesis',{id,verdict});save();render(true);return showHypotheses(r.message);
+    }
+    if(action==='hypothesis-return'){$('modal').close();tab='case';mapFocus=null;linkDraft=null;boardMode='site';render(true);return;}
     if(action==='map-link-start'){
       if(!P.has(state,'notebook')||state.casebook.cases[state.casebook.active].found.length<2)return toast('先记录两件不同证物，再尝试连线。');
       const first=mapFocus&&['inspect','map-read'].includes(mapFocus.action)&&state.casebook.cases[state.casebook.active].found.includes(mapFocus.value)?mapFocus.value:null;

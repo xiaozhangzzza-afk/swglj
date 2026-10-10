@@ -67,6 +67,11 @@ body.mind-mode{background:#e8e8de;color:#30382f}
 .mind-action small,.mind-solve small{color:#887953}
 .mind-evidence.is-recorded{background:#e4e8db;color:#57644b}
 .mind-evidence.is-recorded span:before{content:'✓ ';font-size:11px;color:#758767}
+.mind-evidence.evidence-new{border-left:3px solid #728f55;background:#f9faf1}.mind-evidence.evidence-new span:before{content:'· ';font-size:18px;color:#728f55}
+.mind-evidence.evidence-pending{border-left:3px solid #aa9056}.mind-evidence.evidence-pending small{color:#846a32}
+.mind-evidence.evidence-concluded{border-left:3px solid #607d48}.mind-evidence.evidence-concluded small{color:#456637}
+.hypothesis-card{padding:14px 0;border-bottom:1px solid var(--line)}.hypothesis-card h3{font-size:18px;line-height:1.6;margin:0 0 8px}.hypothesis-card h3 small{font-size:13px;color:#7b6a44;font-weight:400;margin-left:8px}.hypothesis-card p{font-size:16px;line-height:1.7}.hypothesis-card>small{display:block;margin-top:8px;color:var(--muted)}.hypothesis-feedback{border-left:3px solid #8a743e;background:#f4f2e6;padding:10px 12px;line-height:1.7}
+.scene-trace{position:absolute;bottom:-9px;left:calc(50% - 35px);width:70px;height:6px;pointer-events:none}.trace-powder{border-bottom:2px dotted #9a9277}.trace-water:before,.trace-water:after{content:'';position:absolute;bottom:0;width:28px;height:3px;background:#768b78;opacity:.65;transform:rotate(-12deg)}.trace-water:before{left:1px}.trace-water:after{right:1px;transform:rotate(12deg)}
 .mind-node.needs-tool{border-style:dashed;background:#ebece3;color:#59634e}
 .mind-node.is-confirming{outline:3px solid #9e8955;outline-offset:3px}
 .mind-optional{border-style:dashed;color:#67755a;background:transparent}
