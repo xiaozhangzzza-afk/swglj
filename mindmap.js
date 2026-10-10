@@ -47,26 +47,87 @@
     return P.has(s, 'map') ? C.actions(s).filter(a => !a.done && (a.reason === undefined || !['sense', 'read', 'compare'].includes(a.id) || !a.reason)) : [];
   }
   function primary(a) { return !['experiment','reasoning'].includes(a.group) && !a.id.startsWith('truth-') && !['sense', 'read', 'compare', 'legacy-pocket', 'niche-open'].includes(a.id); }
+  function sceneState(s) {
+    const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c),has=k=>f.flags.includes(k);
+    if(id==='station'){
+      const q=f.reasoning;
+      if(c.room==='hall'){
+        if(q.observations.includes('step'))return '粉末线留下脚印，倒影又多走了一步。';
+        if(q.observations.includes('still'))return '女人站着不动，镜中的鞋却跨过了线。';
+        if(q.marked)return '浅粉末线留在地面，女人站在线后。';
+        if(has('mirror-route'))return '镜框已经敞开，身后的脚步晚了一拍。';
+        if(has('opened'))return '登记室的门开了，镜中仍没有你。';
+        if(has('powered'))return '走廊灯亮了，湿脚印通向登记室。';
+        return c.found.includes('mirror')?'镜中有女人，却没有你的倒影。':'灯闪了两次，镜子映着空椅子。';
+      }
+      if(c.room==='bench'){
+        if(q.answered)return '女人合上伞，长椅露出两道逆向水痕。';
+        if(q.asked)return '女人停下催促，等你去核对镜中脚步。';
+        if(f.items.includes('receipt'))return '潮湿纸票已收好，女人仍握着雨伞。';
+        if(f.items.includes('pin'))return '椅底发夹已收好，女人仍在等。';
+        if(f.items.includes('fuse'))return '椅底保险丝已收好，女人仍在等。';
+        return '女人起身，一张湿纸票落在椅上。';
+      }
+      if(c.room==='records')return has('ticket-lit')&&has('erasure')?'灯下的纸票与登记簿擦痕都已显现。':has('erasure')?'擦去的文字已读出，台灯仍亮着。':has('ticket-lit')?'纸票柜号已显现，登记簿仍留着擦痕。':'台灯一直亮着，登记簿最后一行被擦过。';
+      if(c.room==='counter')return c.solved?'认领已经完成，窗口仍亮着灯。':has('stamped')?'印章已经落下，认领栏等你填写。':'印章悬在表上，认领栏还是空的。';
+    }
+    if(id==='tuesday'){
+      if(c.room==='hall'&&has('doors'))return '三道门已接通，走廊尽头响起钟声。';
+      if(c.room==='hall'&&has('rewound'))return '楼梯倒着伸展，走廊仍停在星期二。';
+      if(c.room==='bench'&&f.items.includes('battery'))return '电池已经取出，磁带仍留在桌上。';
+      if(c.room==='records'&&has('rewound'))return '倒带键已压下，远处传来逆行的脚步。';
+      if(c.room==='counter'&&c.solved)return '等待已经结束，这一天重新接回日历。';
+    }
+    if(id==='city'){
+      if(c.room==='hall'&&has('aligned'))return '模型已经校准，地下街的入口显现了。';
+      if(c.room==='hall'&&has('projected'))return '投影落在前厅，三枚街区机关亮起。';
+      if(c.room==='bench'&&f.items.includes('lens'))return '校准镜片已收好，外套仍留在这里。';
+      if(c.room==='counter'&&c.solved)return '城市已经接回现实，归还台安静下来。';
+    }
+    // Use only the visible scene description, never randomized answers or hints.
+    return C.describe(s).split(/[。！？]/)[0]+'。';
+  }
+  function branchPriority(n, s) {
+    if(n.type==='solve')return 0;
+    // Keep all sequence choices together, without ranking the correct answer.
+    if(n.type==='action'&&!n.done&&n.value.startsWith('sequence:'))return 1;
+    if(n.id==='reasoning'&&C.field(s.casebook.cases.station).reasoning.guesses.length&&C.actions(s).some(a=>a.group==='reasoning'&&!a.done))return 1;
+    if(n.type==='evidence'&&n.hint==='新发现')return 2;
+    if(n.id==='supplies'||n.type==='action'&&!n.done&&!n.reason)return 3;
+    if(n.type==='evidence'&&n.hint==='待验证')return 4;
+    if(n.done)return 8;
+    if(n.type==='action'&&!n.done)return 5;
+    if(n.type==='optional')return 6;
+    return 7;
+  }
   function scene(s) {
     const id = s.casebook.active, c = s.casebook.cases[id], d = C.DATA[id], f = C.field(c), rooms = visibleRooms(s);
     const leaves = d.rooms[c.room].things.filter((k, i) => P.has(s, 'map') || i === 0 || c.found.includes(d.rooms[c.room].things[0])).map(k => ({ id: 'evidence:' + k, label: d.evidence[k].name.replace('女人留下的', '').replace('提伞女人的证词', '提伞女人'), type: 'evidence', action: 'inspect', value: k, done: c.found.includes(k),hint:C.evidenceStatus(s,k) }));
     const available = actions(s);
     const operations=P.has(s,'map')?C.actions(s).filter(primary):[];
     for (const a of operations) leaves.push({ id: 'action:' + a.id, label: shortLabel(a, id), type: 'action', action: a.done?'map-result':'map-action', value: a.id, done:a.done, hint:a.done?(a.id.startsWith('take-')?'已取得':a.id==='power'?'已接通':a.id==='unlock'||a.id==='mirror-route'?'通路已打开':'已完成'):'', reason: a.done?'':a.reason || '' });
-    if(C.actions(s).some(a=>a.group==='reasoning'))leaves.push({id:'reasoning',label:'镜面附查',type:'optional',action:'map-group',value:'reasoning',hint:'追问 · 对照 · 回看记录'});
+    const reasoningActions=C.actions(s).filter(a=>a.group==='reasoning');
+    if(reasoningActions.length){const done=reasoningActions.every(a=>a.done);leaves.push({id:'reasoning',label:'镜面附查',type:'optional',action:'map-group',value:'reasoning',done,hint:done?'此处已完成 · 回看记录':'追问 · 对照 · 回看记录'});}
     if (available.some(a => !primary(a)&&a.group!=='reasoning')) leaves.push({ id: 'optional', label: '验证与支路', type: 'optional', action: 'map-optional', value: '' });
     if (c.room === 'counter' && !c.solved && f.flags.includes(C.CONFIG[id].done)) leaves.push({ id: 'solve', label: '提交推理', type: 'solve', action: 'map-solve', value: '' });
     if (c.solved) leaves.push({ id: 'next', label: id === 'city' ? '决定城市去向' : '下一份案卷', type: 'solve', action: id === 'city' ? 'goto' : 'case', value: id === 'city' ? 'legacy' : C.ORDER[C.ORDER.indexOf(id) + 1] });
-    const elsewhere=rooms.filter(k=>k!==c.room),height = Math.max(340, elsewhere.length * ROW + 60, leaves.length * ROW + 60);
+    const supplies=leaves.filter(n=>n.type==='action'&&!n.done&&n.value.startsWith('take-'));
+    const groups={supplies:supplies.length>1?supplies:[]};
+    let choices=groups.supplies.length?leaves.filter(n=>!groups.supplies.includes(n)):leaves;
+    if(groups.supplies.length)choices.push({id:'supplies',label:'取用道具',type:'optional',action:'map-supplies',value:'',hint:groups.supplies.length+' 件 · 单击选择'});
+    if(P.has(s,'map'))choices=choices.map((n,i)=>({n,i})).sort((a,b)=>branchPriority(a.n,s)-branchPriority(b.n,s)||a.i-b.i).map(x=>x.n);
+    const secondary=choices.slice(3),shown=choices.slice(0,3);
+    if(secondary.length)shown.push({id:'more',label:'其他调查',type:'optional',action:'map-more',value:'',hint:secondary.length+' 项 · 单击展开'});
+    const elsewhere=rooms.filter(k=>k!==c.room),height = Math.max(340, elsewhere.length * ROW + 60, shown.length * ROW + 60);
     const trace=id==='station'?(c.room==='hall'&&f.reasoning.marked?'powder':c.room==='bench'&&f.reasoning.answered?'water':''):'';
-    const nodes = [{ id:'room:'+c.room,label:d.rooms[c.room].name,type:'root',action:'map-room',value:c.room,active:true,x:128,y:height/2,sceneMark:trace,hint:trace==='powder'?'你在这里 · '+(f.reasoning.observations.includes('step')?'粉末线留下了脚印':'地面已留下粉末线'):trace==='water'?'你在这里 · 女人已合伞':'' }];
+    const nodes = [{ id:'room:'+c.room,label:d.rooms[c.room].name,type:'root',action:'map-room',value:c.room,active:true,x:128,y:height/2,sceneMark:trace,hint:'你在这里',sceneState:sceneState(s) }];
     const edges = [];
     elsewhere.forEach((k, i) => {
       nodes.push({ id: 'room:' + k, label: d.rooms[k].name, type: 'room', action: 'map-room', value: k, visited: f.visited.includes(k), x:676,y:(height-(elsewhere.length-1)*ROW)/2+i*ROW });
       edges.push({from:'room:'+c.room,to:'room:'+k,navigation:true,active:false});
     });
-    leaves.forEach((n, i) => { nodes.push({ ...n, x:380, y: (height - (leaves.length - 1) * ROW) / 2 + i * ROW }); edges.push({ from: 'room:' + c.room, to: n.id, active: true }); });
-    return { nodes, edges, height, width: 820, activeRoom: c.room };
+    shown.forEach((n, i) => { nodes.push({ ...n, x:380, y: (height - (shown.length - 1) * ROW) / 2 + i * ROW }); edges.push({ from: 'room:' + c.room, to: n.id, active: true }); });
+    return { nodes, edges, height, width: 820, activeRoom: c.room, secondary, groups, navigationLabel:elsewhere.length?'可前往':'' };
   }
   function notes(s) {
     const id = s.casebook.active, c = s.casebook.cases[id], d = C.DATA[id], groups = Object.entries(d.rooms).map(([k, r]) => ({ room: k, label: r.name, evidence: C.visibleEvidence(s,k).filter(k => c.found.includes(k)) })).filter(g => g.evidence.length);
@@ -82,5 +143,5 @@
     confirmed.forEach(r=>edges.push({from:'evidence:'+r.a,to:'evidence:'+r.b,relation:true,active:true}));
     return { nodes, edges, height, width: 820, relations:confirmed.map(r=>[r.a,r.b,r.label]) };
   }
-  return { scene, notes, visibleRooms, path, move, actions, primary, secondClick, deferEntry, ROW, DOUBLE_CLICK_MS };
+  return { scene, sceneState, notes, visibleRooms, path, move, actions, primary, secondClick, deferEntry, ROW, DOUBLE_CLICK_MS };
 });

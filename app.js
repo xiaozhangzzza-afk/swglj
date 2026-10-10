@@ -126,7 +126,7 @@
     const selected=linkDraft&&n.type==='evidence'&&(linkDraft.a===n.value||linkDraft.b===n.value);
     const hint=n.hint||(n.active?'你在这里':n.type==='root'?(n.id==='focus'?'双击阅读':'案卷'):n.type==='room'?(n.visited?'已到访':'前往'):n.done?'已记录':n.reason?'缺少条件 · 点开查看':n.type==='evidence'?'观察':n.type==='optional'?'可选':'操作');
     const statusClass=n.type==='evidence'?({'新发现':' evidence-new','待验证':' evidence-pending','已有结论':' evidence-concluded'}[hint]||''):'';
-    return '<button id="mind-' + esc(n.id) + '" class="mind-node mind-' + n.type + statusClass + (n.active ? ' is-current' : '') + (n.done ? ' is-recorded' : '') + (selected?' is-link-selected':'') + (n.reason ? ' needs-tool' : '') + '" data-do="' + esc(n.action) + '" data-value="' + esc(n.value) + '" style="--node-x:' + (n.x / 820 * 100) + '%;--node-y:' + n.y + 'px" aria-label="' + esc(n.label + (n.active ? '，当前地点' : selected?'，连线已选中':n.type==='evidence'||n.done?'，'+hint:n.reason ? '，需要前置条件' : '')) + '"' + (n.active ? ' aria-current="location"' : '') + '><span>' + esc(n.label) + '</span><small>' + esc(selected?'已选中 · '+(linkDraft.a===n.value?'起点':'终点'):hint) + '</small>'+(n.sceneMark?'<i class="scene-trace trace-'+esc(n.sceneMark)+'" aria-hidden="true"></i>':'')+'</button>';
+    return '<button id="mind-' + esc(n.id) + '" class="mind-node mind-' + n.type + statusClass + (n.active ? ' is-current' : '') + (n.done ? ' is-recorded' : '') + (selected?' is-link-selected':'') + (n.reason ? ' needs-tool' : '') + '" data-do="' + esc(n.action) + '" data-value="' + esc(n.value) + '" style="--node-x:' + (n.x / 820 * 100) + '%;--node-y:' + n.y + 'px" aria-label="' + esc(n.label + (n.active ? '，当前地点' : selected?'，连线已选中':n.type==='evidence'||n.done?'，'+hint:n.reason ? '，需要前置条件' : '')) + '"' + (n.active ? ' aria-current="location"' : '') + '><span>' + esc(n.label) + '</span><small>' + esc(selected?'已选中 · '+(linkDraft.a===n.value?'起点':'终点'):hint) + '</small>'+(n.sceneState?'<span class="mind-scene-state">'+esc(n.sceneState)+'</span>':'')+(n.sceneMark?'<i class="scene-trace trace-'+esc(n.sceneMark)+'" aria-hidden="true"></i>':'')+'</button>';
   }
   function renderMap(model) {
     const byId = Object.fromEntries(model.nodes.map(n => [n.id, n]));
@@ -134,7 +134,9 @@
       const a = byId[e.from], b = byId[e.to], start = a.x + (a.type === 'root' ? 95 : 78), end = b.x - (b.type === 'room' ? 78 : 96), mid = (start + end) / 2;
       return '<path data-from="' + esc(e.from) + '" data-to="' + esc(e.to) + '"' + (e.relation?' data-relation="true"':'') + (e.navigation?' data-navigation="true"':'') + ' class="' + (e.active ? 'active-link ' : '') + (e.relation?'relation-link ':'') + (e.navigation?'navigation-link ':'') + (e.pending?'pending-link':'') + '" d="M ' + start + ' ' + a.y + ' C ' + mid + ' ' + a.y + ', ' + mid + ' ' + b.y + ', ' + end + ' ' + b.y + '"/>';
     }).join('');
-    return '<div class="mind-board" style="--board-height:' + model.height + 'px" role="group" aria-label="可交互调查思维导图"><svg class="mind-lines" viewBox="0 0 820 ' + model.height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + model.nodes.map(mapNode).join('') + '</div>';
+    const destinations=model.nodes.filter(n=>n.type==='room'&&n.x===676),first=destinations[0];
+    const label=model.navigationLabel&&first?'<span class="mind-column-label" style="left:'+(first.x/820*100)+'%;top:'+(Math.min(...destinations.map(n=>n.y))-56)+'px">'+esc(model.navigationLabel)+'</span>':'';
+    return '<div class="mind-board" style="--board-height:' + model.height + 'px" role="group" aria-label="可交互调查思维导图"><svg class="mind-lines" viewBox="0 0 820 ' + model.height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + label + model.nodes.map(mapNode).join('') + '</div>';
   }
   function renderCase() {
     const id = state.casebook.active, c = state.casebook.cases[id], d = C.DATA[id], model = mapFocus ? focusedMap() : boardMode === 'notes' ? M.notes(state) : M.scene(state);
@@ -151,7 +153,7 @@
     if(c.found.length>=2&&!linkDraft)html+='<button class="mind-tool-button" data-do="map-link-start">证物连线</button>';
     if(C.canHypothesize(state))html+='<button class="mind-tool-button" data-do="map-hypotheses">暂定猜测'+(C.hypothesisEntries(state).some(h=>h.status==='待验证')?' · 待验证':C.hypothesisEntries(state).some(h=>h.status==='已确认')?' · 已确认':'')+'</button>';
     if(C.history(state).length)html+='<button class="mind-tool-button" data-do="map-history">现场记录 · '+C.history(state).length+'</button>';
-    html += '<button class="mind-tool-button" data-do="map-hint">调查提示</button></div></div><p class="mind-gesture-tip">单击立即进入 · 双击显示文字</p>';
+    html += '<button class="mind-tool-button" data-do="map-hint">调查提示</button></div></div><p class="mind-gesture-tip">单击立即进入 · 双击显示文字'+(!mapFocus&&boardMode==='site'&&model.secondary.length?' · 其余内容在“其他调查”':'')+'</p>';
     html+='<p class="mind-objective"><span>眼下目标</span>'+esc(C.goal(state))+'</p>';
     if(linkDraft)html+=renderLinkDraft();
     if (g) html += '<p class="mind-guide" role="status">' + esc(g.title) + ' <button data-do="walkthrough" class="text-button">收起引导</button></p>';
@@ -168,7 +170,8 @@
     for (const path of svg.querySelectorAll('path[data-from]')) {
       const from = $('mind-' + path.dataset.from), to = $('mind-' + path.dataset.to); if (!from || !to) continue;
       const a = from.getBoundingClientRect(), b = to.getBoundingClientRect(), x1 = a.right - bounds.left, x2 = b.left - bounds.left, y1 = a.top + a.height / 2 - bounds.top, y2 = b.top + b.height / 2 - bounds.top, mid = (x1 + x2) / 2;
-      if(path.dataset.navigation){const lane=x1+25,entry=x2-25;path.setAttribute('d','M '+x1+' '+y1+' H '+lane+' V 12 H '+entry+' V '+y2+' H '+x2);}
+      // Place navigation beside its destination instead of wrapping the whole board.
+      if(path.dataset.navigation)path.setAttribute('d','M '+(x2-24)+' '+y2+' H '+x2);
       else if(path.dataset.relation){const end=b.right-bounds.left,side=Math.min(bounds.width-5,Math.max(x1,end)+38);path.setAttribute('d','M '+x1+' '+y1+' C '+side+' '+y1+', '+side+' '+y2+', '+end+' '+y2);}
       else path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + mid + ' ' + y1 + ', ' + mid + ' ' + y2 + ', ' + x2 + ' ' + y2);
     }
@@ -192,7 +195,9 @@
     const id=state.casebook.active,c=state.casebook.cases[id],d=C.DATA[id],f=mapFocus,available=M.actions(state),names={reasoning:'镜面附查',experiment:'现场验证',truth:'寄存人核验',ability:'能力与支路'};
     const category=a=>a.group==='reasoning'?'reasoning':a.group==='experiment'?'experiment':a.id.startsWith('truth-')?'truth':'ability';
     let children=[];
-    if(f.action==='map-optional') children=Object.keys(names).filter(k=>available.some(a=>!M.primary(a)&&category(a)===k)).map(k=>({label:names[k],type:'optional',action:'map-group',value:k}));
+    if(f.action==='map-more')children=M.scene(state).secondary;
+    else if(f.action==='map-supplies')children=M.scene(state).groups.supplies;
+    else if(f.action==='map-optional') children=Object.keys(names).filter(k=>available.some(a=>!M.primary(a)&&category(a)===k)).map(k=>({label:names[k],type:'optional',action:'map-group',value:k}));
     else if(f.action==='map-group'){
       children=(f.value==='reasoning'?C.actions(state):available).filter(a=>!M.primary(a)&&category(a)===f.value).map(a=>({label:a.label.split(' · ')[0],type:'action',action:a.done?'map-result':'map-action',value:a.id,reason:a.done?'':a.reason,done:a.done,hint:a.done?'已完成':''}));
       if(f.value==='reasoning')for(const k of C.visibleEvidence(state,c.room).filter(k=>Object.hasOwn(C.REASON_EVIDENCE,k)&&c.found.includes(k)))children.push({label:d.evidence[k].name,type:'evidence',action:'map-read',value:k,done:true,hint:C.evidenceStatus(state,k)});
@@ -260,6 +265,8 @@
     }
     if(action==='map-solve'){if(c.room==='counter'&&C.field(c).flags.includes(C.CONFIG[id].done)&&!c.solved)modal('提交推理',puzzleForm(id,c));return;}
     if(action==='map-intro')return modal(d.name,'<p>'+esc(d.intro)+'</p>'+(C.opening(state,id)?'<p>'+esc(C.opening(state,id))+'</p>':''));
+    if(action==='map-more')return modal(label,'<p>这里保留当前现场其余证物、操作与支路，包括已完成的记录。单击展开，不会使用道具；双击具体节点才阅读文字。收起只改变显示，不会删除进度。</p>');
+    if(action==='map-supplies')return modal(label,'<p>可拿取的道具收在一起。单击选择一件，再点“执行操作”；双击只查看说明。你可以自由选择调查路线，不必把所有道具都拿齐。</p>');
     if(action==='map-optional'||action==='map-group')return modal(label,'<p>可选调查不影响结案。单击进入分支选择验证或能力，双击具体节点查看说明。</p>');
     if(action==='case'||action==='goto')return modal(label,'<p>单击这个节点继续，不会清空当前进度。</p>');
     if(action==='map-back')return toast('单击返回上一层。');
@@ -365,7 +372,16 @@
       drawMapLinks();
       if (experimentOpen && document.querySelector('.experiment-record')) document.querySelector('.experiment-record').open = true;
       document.querySelectorAll('#main [data-do="goto"]').forEach(el => el.hidden = !P.has(state, el.dataset.value));
-      if (tab === 'case' && state.ui.walkthrough) { const g = walkthrough(); for (const el of document.querySelectorAll('#main [data-do]')) if ((el.dataset.do === g.action || el.dataset.do === 'map-' + (g.action === 'interact' ? 'action' : g.action)) && el.dataset.value === g.value || g.action === 'choose-route' && (el.dataset.do === 'interact' || el.dataset.do === 'map-action') && ['take-fuse', 'take-pin'].includes(el.dataset.value)) el.classList.add('guided-target'); if (g.action === 'submit') document.querySelector('[data-do="map-solve"]')?.classList.add('guided-target'); }
+      if (tab === 'case' && state.ui.walkthrough) {
+        const g = walkthrough();
+        for (const el of document.querySelectorAll('#main [data-do]')) if ((el.dataset.do === g.action || el.dataset.do === 'map-' + (g.action === 'interact' ? 'action' : g.action)) && el.dataset.value === g.value || g.action === 'choose-route' && (el.dataset.do === 'interact' || el.dataset.do === 'map-action') && ['take-fuse', 'take-pin'].includes(el.dataset.value)) el.classList.add('guided-target');
+        if(!mapFocus&&boardMode==='site'){
+          const map=M.scene(state),match=n=>n.value===g.value&&(n.action===g.action||n.action==='map-'+(g.action==='interact'?'action':g.action));
+          if(map.secondary.some(match))document.querySelector('[data-do="map-more"]')?.classList.add('guided-target');
+          if(map.groups.supplies.some(match)||g.action==='choose-route')document.querySelector('[data-do="map-supplies"]')?.classList.add('guided-target');
+        }
+        if (g.action === 'submit') document.querySelector('[data-do="map-solve"]')?.classList.add('guided-target');
+      }
       for (const [id, value] of fields) if ($(id)) $(id).value = value;
       if (focused && $(focused)) $(focused).focus({ preventScroll: true });
       document.querySelectorAll('[data-tab]').forEach(b => { b.classList.toggle('active', b.dataset.tab === tab); b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'); });

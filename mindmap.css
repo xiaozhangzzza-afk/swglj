@@ -32,7 +32,8 @@ body.mind-mode{background:#e8e8de;color:#30382f}
 .mind-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .mind-lines path{stroke:#bdc4b1;stroke-width:1.25;fill:none;vector-effect:non-scaling-stroke}
 .mind-lines .active-link{stroke:#778b62;stroke-width:1.65}
-.mind-lines .navigation-link{stroke:#c1c6b7;stroke-width:1;stroke-dasharray:3 5;opacity:.7}
+.mind-lines .navigation-link{stroke:#aeb89f;stroke-width:1;stroke-dasharray:3 4;opacity:.55}
+.mind-column-label{position:absolute;transform:translateX(-50%);font-size:13px;letter-spacing:1px;color:#748066;pointer-events:none}
 .mind-node{position:absolute;left:var(--node-x);top:var(--node-y);transform:translate(-50%,-50%);width:clamp(174px,20vw,238px);min-height:72px;padding:11px 15px;border:1px solid #97a787;border-radius:3px;color:#2f4223;background:#f9faf1;box-shadow:none;text-align:left;line-height:1.4;font-size:18px;font-weight:500;white-space:normal}
 .mind-node span{display:block;overflow-wrap:anywhere}
 .mind-node small{display:block;margin-top:5px;font-size:13px;letter-spacing:0;color:#586b49;font-weight:400}
@@ -43,6 +44,7 @@ body.mind-mode{background:#e8e8de;color:#30382f}
 .mind-root:hover{background:#46583a;color:#fff}
 .mind-root.is-current{border:2px solid #31452b;background:#3e5132;color:#fff;min-height:94px;font-size:23px}
 .mind-root.is-current small{color:#d2dfc7}
+.mind-root .mind-scene-state{font-size:14px;font-weight:400;line-height:1.65;margin-top:12px;padding-top:10px;border-top:1px solid #ffffff25;color:#dce5cf;text-align:left;letter-spacing:0}
 .mind-action.is-recorded{border-color:#a6b798;background:#e4eadb;color:#546547}
 .mind-action.is-recorded span:before{content:'✓ ';color:#5b7844;font-size:14px}
 .mind-action.is-recorded small{color:#486138}
@@ -132,7 +134,8 @@ body.mind-mode{background:#e8e8de;color:#30382f}
   .mind-room{width:calc(100% - 26px);margin-left:26px}
   .mind-room{order:4}
   .mind-room.is-current{order:1}
-  #mind-parent{order:-1}
+  #mind-parent{order:4}
+  .mind-column-label{position:static;transform:none;order:3;margin:8px 0 0 26px}
   .mind-room:before,.mind-room:after{left:-13px;width:12px}
   .mind-room:after{width:0}
   .mind-foot{gap:10px;flex-wrap:wrap;padding-top:10px}
