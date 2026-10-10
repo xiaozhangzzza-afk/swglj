@@ -1,0 +1,104 @@
+/* Investigation is the interface: quiet node labels, details only on selection. */
+body.mind-mode{background:#e8e8de;color:#30382f}
+.mind-mode .shell{display:block}
+.mind-mode .sidebar{display:none}
+.mind-mode .workspace{min-width:0}
+.mind-mode .topbar{background:#f1f1e9;color:#47513f;border-bottom:1px solid #c7cbbb;min-height:56px}
+.mind-mode .topbar .tiny-label{display:none}
+.mind-mode .topbar-actions{color:#59634f}
+.mind-mode .topbar .quiet-button{color:#4d5b43;border-color:#d0d4c5}
+.mind-mode .topbar [data-do="guide"]{display:none}
+.mind-mode .content-grid{display:block}
+.mind-mode main{max-width:1180px;width:calc(100% - 48px);margin:22px auto;background:transparent;border:0;box-shadow:none;padding:0 12px}
+.mind-mode footer{color:#747d6a;padding:12px 28px}
+.mind-mode footer span{display:none}
+.mind-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.mind-heading h1{font-size:24px;font-weight:500;letter-spacing:1px;line-height:1.6;margin:4px 0 0}
+.mind-heading .tiny-label{font-size:11px;color:#68735e;letter-spacing:2px}
+.mind-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;color:#77806d}
+.mind-switch{display:flex;gap:16px}
+.mind-switch button{border:0;border-bottom:2px solid transparent;padding:7px 0;background:transparent;color:#77806d;border-radius:0;font-size:14px}
+.mind-switch button[aria-pressed="true"]{color:#34452b;border-color:#6b7959}
+.mind-board{position:relative;height:var(--board-height);margin:8px 0 14px;width:100%}
+.mind-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.mind-lines path{stroke:#bdc4b1;stroke-width:1.25;fill:none;vector-effect:non-scaling-stroke}
+.mind-lines .active-link{stroke:#778b62;stroke-width:1.65}
+.mind-node{position:absolute;left:var(--node-x);top:var(--node-y);transform:translate(-50%,-50%);width:192px;min-height:52px;padding:9px 11px;border:1px solid #bec7b0;border-radius:3px;color:#414e35;background:#f7f7f0;box-shadow:none;text-align:left;line-height:1.45;font-size:14px;white-space:normal}
+.mind-node span{display:block;overflow-wrap:anywhere}
+.mind-node small{display:block;margin-top:4px;font-size:10px;letter-spacing:.5px;color:#858e7b}
+.mind-node:hover{background:#fffef6;border-color:#798c62;box-shadow:none}
+.mind-node:focus-visible{outline:3px solid #8a743e;outline-offset:4px}
+.mind-root{width:190px;min-height:76px;background:#3e4d34;border:1px solid #3e4d34;color:#f1f1df;font-size:17px;text-align:center}
+.mind-root small{color:#c4cfb4}
+.mind-root:hover{background:#46583a;color:#fff}
+.mind-room{width:156px;background:#ededdf}
+.mind-room.is-current{border:2px solid #708b58;background:#f9faed;color:#344a29}
+.mind-room.is-current small{color:#667f52}
+.mind-action{border-left:3px solid #b4a174}
+.mind-action small,.mind-solve small{color:#887953}
+.mind-evidence.is-recorded{background:#e4e8db;color:#57644b}
+.mind-evidence.is-recorded span:before{content:'✓ ';font-size:11px;color:#758767}
+.mind-node.needs-tool{border-style:dashed;background:#ebece3;color:#7b8370}
+.mind-optional{border-style:dashed;color:#67755a;background:transparent}
+.mind-solve{border:2px solid #9d875b;background:#f4eedb;color:#67532c}
+.mind-foot{border-top:1px solid #c6ccb9;padding-top:12px;display:flex;align-items:center;justify-content:flex-end;gap:18px;font-size:12px;color:#79826e}
+.mind-foot>span:first-child{margin-right:auto}
+.mind-foot .text-button{font-size:12px;color:#657655}
+.mind-guide{font-size:13px;color:#716340;border-left:2px solid #b59c62;padding-left:12px}
+.mind-guide .text-button{margin-left:12px;font-size:12px}
+.mind-empty{text-align:center;font-size:14px;color:#78816e}
+.map-menu{display:flex;flex-direction:column;gap:10px}
+.map-menu .button{text-align:left;white-space:normal}
+.map-photo{width:100%;max-height:360px;object-fit:contain}
+.mind-gesture-tip{padding:3px 7px;border-left:2px solid #afba9f;color:#67785a}
+.mind-node{touch-action:manipulation}
+.node-click-fx{position:fixed;z-index:1000;pointer-events:none;border-radius:3px;contain:layout paint;overflow:visible}
+.node-click-fx:before,.node-click-fx:after{content:'';position:absolute;pointer-events:none}
+.fx-mirror:before{inset:-4px;border:1px solid #8fa29b;background:linear-gradient(110deg,transparent 25%,#c2d1cc65 45%,transparent 65%);animation:mirror-slip .5s ease-out both}
+.fx-mirror:after{inset:4px;border:1px solid #859d9560;animation:mirror-slip .5s .06s ease-out both}
+.fx-paper:before{inset:-3px;background:repeating-linear-gradient(0deg,#cdc5a550 0px,#cdc5a550 1px,transparent 1px,transparent 9px);border:1px solid #b0a884;transform-origin:left center;animation:paper-open .55s ease-out both}
+.fx-electric:before{width:50%;height:2px;top:30%;left:15%;background:#ad985f;box-shadow:16px 13px 0 #c3b576;animation:small-spark .45s ease-out both}
+.fx-electric:after{width:2px;height:14px;top:20%;right:15%;background:#b2a062;animation:small-spark .45s .03s ease-out both}
+.fx-ripple:before,.fx-echo:before{width:50px;height:28px;left:calc(50% - 25px);top:calc(50% - 14px);border:1px solid #8d9b88;border-radius:50%;animation:node-wave .6s ease-out both}
+.fx-echo:after{width:35px;height:35px;left:calc(50% - 18px);top:calc(50% - 18px);border:1px solid #a59d79;border-radius:50%;animation:node-wave .6s .07s ease-out both}
+.fx-rain:before{width:1px;height:13px;left:25%;top:0;background:#a8b6a1;box-shadow:30px -4px #a8b6a1,65px 5px #a8b6a1,90px -8px #a8b6a1;animation:quiet-rain .5s ease-out both}
+.fx-city:before{inset:-5px;border:1px solid #a3ae94;background:repeating-linear-gradient(90deg,transparent 0 20px,#a3ae9435 20px 21px),repeating-linear-gradient(0deg,transparent 0 15px,#a3ae9435 15px 16px);animation:city-trace .55s ease-out both}
+.mind-entering .mind-lines .active-link{stroke-dasharray:700;animation:branch-grow .4s ease-out both}
+.mind-entering .mind-node{animation:node-arrive .35s ease-out both}
+@keyframes mirror-slip{0%{opacity:0;transform:translateX(-6px)}35%{opacity:.8}100%{opacity:0;transform:translateX(8px)}}
+@keyframes paper-open{0%{opacity:0;transform:scaleX(.2)}30%{opacity:.7}100%{opacity:0;transform:scaleX(1.06)}}
+@keyframes small-spark{0%{opacity:0;transform:rotate(-28deg) scale(.5)}25%{opacity:.8}100%{opacity:0;transform:rotate(-28deg) scale(1.6)}}
+@keyframes node-wave{0%{opacity:.65;transform:scale(.6)}100%{opacity:0;transform:scale(3)}}
+@keyframes quiet-rain{0%{opacity:0;transform:translateY(-8px)}30%{opacity:.7}100%{opacity:0;transform:translateY(30px)}}
+@keyframes city-trace{0%{opacity:0;clip-path:inset(0 100% 0 0)}35%{opacity:.6}100%{opacity:0;clip-path:inset(0 0 0 0)}}
+@keyframes branch-grow{from{stroke-dashoffset:700}to{stroke-dashoffset:0}}
+@keyframes node-arrive{from{opacity:.45;translate:7px 0}to{opacity:1;translate:0 0}}
+@media(prefers-reduced-motion:reduce){.node-click-fx{display:none}.mind-entering .mind-node,.mind-entering .mind-lines .active-link{animation:none}}
+.mind-mode .toast{max-width:calc(100vw - 40px)}
+@media(max-width:1000px) and (min-width:701px){.mind-node{width:174px;font-size:13px}.mind-room{width:142px}.mind-root{width:166px}}
+@media(max-width:700px){
+  .mind-mode main{width:calc(100% - 28px);margin:16px auto;padding:0}
+  .mind-mode .topbar{padding:9px 14px;flex-wrap:wrap;gap:8px}
+  .mind-mode .topbar-actions{gap:7px}
+  .mind-mode .topbar #save-status{display:none}
+  .mind-heading{margin-bottom:10px}.mind-heading h1{font-size:21px}
+  .mind-toolbar{flex-wrap:wrap;gap:8px}.mind-toolbar>span{font-size:11px}
+  .mind-board{height:auto;display:flex;flex-direction:column;gap:10px;padding:12px 0 8px;margin:8px 0}
+  .mind-lines{display:none}
+  .mind-node{position:relative;left:auto;top:auto;transform:none;width:calc(100% - 52px);min-height:48px;font-size:14px;margin-left:52px}
+  .mind-node:before{content:'';position:absolute;left:-26px;top:24px;width:25px;border-top:1px solid #b8c4aa}
+  .mind-node:after{content:'';position:absolute;left:-26px;top:-11px;height:35px;border-left:1px solid #b8c4aa}
+  .mind-root{width:calc(100% - 10px);margin:0 0 4px;min-height:65px;text-align:left}
+  .mind-root:before,.mind-root:after{display:none}
+  .mind-root{order:0}
+  .mind-evidence,.mind-action,.mind-optional,.mind-solve{order:2}
+  .mind-room{width:calc(100% - 26px);margin-left:26px}
+  .mind-room{order:4}
+  .mind-room.is-current{order:1}
+  #mind-parent{order:-1}
+  .mind-room:before,.mind-room:after{left:-13px;width:12px}
+  .mind-room:after{width:0}
+  .mind-foot{gap:10px;flex-wrap:wrap;padding-top:10px}
+  .mind-foot>span:first-child{width:100%;margin:0}
+  .mind-mode footer{font-size:11px;padding:12px 14px}
+}

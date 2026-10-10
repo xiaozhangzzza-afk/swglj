@@ -7,7 +7,8 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23141f22'/%3E%3Cpath d='M10 12h20v19H10zM16 12V7h8v5M16 21h8' fill='none' stroke='%23dfbd7c' stroke-width='2'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="dossier.css">
-  <script defer src="engine.js"></script><script defer src="cases.js"></script><script defer src="exploration.js"></script><script defer src="depth.js"></script><script defer src="progression.js"></script><script defer src="help.js"></script><script defer src="app.js"></script>
+  <link rel="stylesheet" href="mindmap.css">
+  <script defer src="engine.js"></script><script defer src="cases.js"></script><script defer src="exploration.js"></script><script defer src="depth.js"></script><script defer src="progression.js"></script><script defer src="help.js"></script><script defer src="mindmap.js"></script><script defer src="node-effects.js"></script><script defer src="app.js"></script>
 </head>
 <body>
   <div class="shell">
@@ -44,7 +45,7 @@
           <div id="journal" class="journal"></div>
         </aside>
       </div>
-      <footer>失物管理局 / 现场验证版 0.6 <span>您的案卷留在本机 · 建议定期导出存档</span></footer>
+      <footer>失物管理局 / 导图调查版 0.7 <span>您的案卷留在本机 · 建议定期导出存档</span></footer>
     </div>
   </div>
   <dialog id="modal"><div class="modal-top"><h2 id="modal-title"></h2><button data-do="close-modal" class="quiet-button" aria-label="关闭对话框">关闭</button></div><div id="modal-body"></div></dialog>
