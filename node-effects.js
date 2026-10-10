@@ -4,6 +4,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   function kind(caseId,action,value){
+    value=String(value||'');if(action==='tree-read')value=value.replace(/^(evidence|action):/,'');
     if(['mirror','glass','take-glass','mirror-route','mirror-ledger','truth-reflection','test-cover','test-watch','reason-still','reason-step','still-note','step-note'].includes(value))return 'mirror';
     if(['power','take-fuse','fuse','take-battery','battery','project','take-lens','lens'].includes(value))return 'electric';
     if(['ticket','receipt','take-receipt','ledger','handwriting','notice','lamp-ticket','truth-paper','files','manual','letter'].includes(value))return 'paper';

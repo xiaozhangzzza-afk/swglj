@@ -95,6 +95,7 @@
       c.hints++; B.log(s, '你在案卷边缘补了一条推理提示。'); return { ok: true };
     }
     if (type === 'solve') {
+      if(!p||typeof p!=='object'||Array.isArray(p))return {ok:false,message:'请填写完整的推理内容。'};
       if (c.solved) return { ok: false, message: '这份案件已经结案，可以重读证物或调查新地点。' };
       if (c.room !== 'counter') return { ok: false, message: '到登记窗口提交推理。' };
       if (c.found.length < 3) return { ok: false, message: '至少先取得三件证据，再提交推理。' };

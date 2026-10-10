@@ -227,14 +227,14 @@
       if (!pay(s, hireCost(s))) return fail('入职登记材料不足。');
       const idx = s.workers.length; s.workers.push(NAMES[idx % NAMES.length] + (idx >= NAMES.length ? '·' + (idx + 1) : '')); log(s, '「' + s.workers[idx] + '」入职了。请为新员工分配岗位。');
     } else if (type === 'job') {
-      const { id, delta } = payload || {}; if (!JOBS[id] || !has(s, JOBS[id].tech) || ![1, -1].includes(delta)) return fail('无效岗位调整。');
+      const { id, delta } = payload || {}; if (!Object.hasOwn(JOBS,id) || !has(s, JOBS[id].tech) || ![1, -1].includes(delta)) return fail('无效岗位调整。');
       if (id === 'detective' && s.expedition) return fail('调查员正在外出，归来后才能调整。');
       if (delta > 0 && assigned(s) >= s.workers.length) return fail('没有待命员工；可先从其他岗位调出一人。');
       if (delta < 0 && s.jobs[id] === 0) return fail('这个岗位已经无人。'); s.jobs[id] += delta;
     } else if (type === 'policy') {
-      if (!has(s, 'charter') || !POLICIES[payload]) return fail('先研究管理局章程。'); s.policy = payload; log(s, '方针改为「' + POLICIES[payload].name + '」。');
+      if (!has(s, 'charter') || !Object.hasOwn(POLICIES,payload)) return fail('先研究管理局章程。'); s.policy = payload; log(s, '方针改为「' + POLICIES[payload].name + '」。');
     } else if (type === 'explore') {
-      const { site: id, mode } = payload || {}, d = SITES[id];
+      const { site: id, mode } = payload || {}, d = Object.hasOwn(SITES,id)?SITES[id]:null;
       if (!d || !has(s, d.tech) || !['careful', 'bold'].includes(mode)) return fail('尚不能开展这项调查。');
       if (s.expedition) return fail('上一支队伍尚未归来。'); if (s.jobs.detective < 1) return fail('至少安排一名调查员。');
       if (!pay(s, d.cost)) return fail('调查准备材料不足。');
@@ -242,7 +242,7 @@
       const duration = d.time / speed * (mode === 'careful' ? 1.15 : 0.9);
       s.expedition = { site: id, mode, party: s.jobs.detective, duration, remaining: duration }; log(s, s.jobs.detective + ' 名调查员出发前往「' + d.name + '」。');
     } else if (type === 'event') {
-      const d = EVENTS[s.event], choice = d && d.choices[payload]; if (!choice) return fail('这个事件已经结束。');
+      const d = Object.hasOwn(EVENTS,s.event)?EVENTS[s.event]:null, choice = d && Number.isInteger(payload)&&payload>=0&&d.choices[payload]; if (!choice) return fail('这个事件已经结束。');
       if (choice.cost && !pay(s, choice.cost)) return fail('处理这件事所需材料不足，可选另一个方案。');
       const won = choice.chance === undefined || random(s) < choice.chance;
       if (won) { add(s, choice.reward); s.trust = clamp(s.trust + (choice.trust || 0), 0, 100); s.stability = clamp(s.stability + (choice.stability || 0), 0, 100); }

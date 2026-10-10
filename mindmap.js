@@ -219,7 +219,11 @@
   function journey(s){
     const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c),has=k=>f.flags.includes(k);
     const labels=id==='station'?['发现异常','打开通路','补齐信息','完成认领']:id==='tuesday'?['发现异常','恢复设备','找回归途','结束等待']:['发现异常','启动投影','校准城市','完成归还'];
-    const index=c.solved?4:c.found.length<2?0:id==='station'?!has('opened')?1:!has('ticket-lit')||!has('erasure')?2:3:id==='tuesday'?!has('powered')?1:!has('doors')?2:3:!has('projected')?1:!has('authorized')?2:3;
+    let index;
+    if(c.solved)index=4;
+    else if(id==='station')index=has('ticket-lit')&&has('erasure')?3:has('opened')?2:c.found.length>=2||f.items.length?1:0;
+    else if(id==='tuesday')index=has('doors')?3:has('powered')?2:c.found.length>=2||f.items.length?1:0;
+    else index=has('authorized')?3:has('projected')?2:c.found.length>=2||f.items.length?1:0;
     return labels.map((label,i)=>({label,status:i<index?'done':i===index?'current':'future'}));
   }
   return { scene, sceneState, notes, tree, grow, restoreTrees, guideBranch, journey, visibleRooms, path, move, actions, primary, secondClick, deferEntry, ROW, DOUBLE_CLICK_MS };

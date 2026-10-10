@@ -5,10 +5,10 @@
   <meta name="description" content="收容被世界遗忘之物。中文诡异解谜、调查与增量经营游戏。">
   <title>失物管理局 · 请勿寻找自己</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23141f22'/%3E%3Cpath d='M10 12h20v19H10zM16 12V7h8v5M16 21h8' fill='none' stroke='%23dfbd7c' stroke-width='2'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=080">
-  <link rel="stylesheet" href="dossier.css?v=080">
-  <link rel="stylesheet" href="mindmap.css?v=080">
-  <script defer src="engine.js?v=080"></script><script defer src="cases.js?v=080"></script><script defer src="exploration.js?v=080"></script><script defer src="depth.js?v=080"></script><script defer src="investigation.js?v=080"></script><script defer src="progression.js?v=080"></script><script defer src="help.js?v=080"></script><script defer src="mindmap.js?v=080"></script><script defer src="node-effects.js?v=080"></script><script defer src="app.js?v=080"></script>
+  <link rel="stylesheet" href="style.css?v=081">
+  <link rel="stylesheet" href="dossier.css?v=081">
+  <link rel="stylesheet" href="mindmap.css?v=081">
+  <script defer src="engine.js?v=081"></script><script defer src="cases.js?v=081"></script><script defer src="exploration.js?v=081"></script><script defer src="depth.js?v=081"></script><script defer src="investigation.js?v=081"></script><script defer src="progression.js?v=081"></script><script defer src="help.js?v=081"></script><script defer src="mindmap.js?v=081"></script><script defer src="node-effects.js?v=081"></script><script defer src="storage.js?v=081"></script><script defer src="app.js?v=081"></script>
 </head>
 <body>
   <div class="shell">
@@ -32,7 +32,7 @@
     </aside>
     <div class="workspace">
       <header class="topbar"><div><span class="tiny-label">值班记录</span><span id="clock">第 1 日 · 00:00</span></div><div class="topbar-actions"><span id="save-status" role="status">本地自动存档</span><button class="help-trigger quiet-button" data-do="help" aria-label="搜索帮助" title="搜索帮助"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m15 15 6 6" stroke="currentColor" stroke-width="1.6"/></svg></button><button class="quiet-button" data-do="guide">玩法</button><button class="quiet-button" data-do="settings">存档</button><button class="quiet-button" data-do="pause" id="pause-button">暂停</button></div></header>
-      <div id="storage-warning" class="warning-banner" hidden></div>
+      <div id="storage-warning" class="warning-banner" role="alert" hidden></div>
       <div id="feature-discovery" class="feature-discovery" role="status" hidden></div>
       <div id="resource-bar" class="resources" aria-label="管理局库存"></div>
       <div class="content-grid">
@@ -45,7 +45,7 @@
           <div id="journal" class="journal"></div>
         </aside>
       </div>
-      <footer>失物管理局 / 生长导图版 0.8.0 <span>您的案卷留在本机 · 建议定期导出存档</span></footer>
+      <footer>失物管理局 / 生长导图版 0.8.1 <span>您的案卷留在本机 · 建议定期导出存档</span></footer>
     </div>
   </div>
   <dialog id="modal"><div class="modal-top"><h2 id="modal-title"></h2><button data-do="close-modal" class="quiet-button" aria-label="关闭对话框">关闭</button></div><div id="modal-body"></div></dialog>
