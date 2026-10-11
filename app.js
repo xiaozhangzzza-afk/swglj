@@ -6,11 +6,21 @@
   const session = window.BureauStorage.tabSession({key:KEY+'-session',navigationType:performance.getEntriesByType('navigation')[0]?.type,random:()=>typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(),storage:{getItem:k=>sessionStorage.getItem(k),setItem:(k,v)=>sessionStorage.setItem(k,v)}});
   const store=window.BureauStorage.create({key:KEY,session,decode:deserialize,storage:{getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v),removeItem:k=>localStorage.removeItem(k)}});
   const $ = id => document.getElementById(id);
+  const audio=window.BureauAudio.create({AudioContext:window.AudioContext||window.webkitAudioContext,key:KEY+'-audio',storage:{getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)},onChange:updateAudioUI});
   const esc = x => String(x).replace(/[&<>"']/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[x]);
   const fmt = n => n >= 10000 ? (n / 1000).toFixed(1) + 'k' : n >= 100 ? Math.floor(n).toString() : Math.floor(n * 10) / 10 + '';
   let state, tab = 'case', boardMode = 'site', mapFocus = null, lastMapResult = null, linkDraft = null, linkFeedback = '', nodeClickTimer, lastNodeGesture = null, lastStructure = '', lastView = '', lastJournal = '', lastEvent = '', introOpen = false, toastTimer, saveAvailable = true, owner = true, lastTick = Date.now(), lastSave = 0, pendingImport = null, unreadableCopies=[];
   function warn(message) { $('storage-warning').hidden = false; $('storage-warning').textContent = message; }
-  function deserialize(raw) { const data = typeof raw === 'string' ? JSON.parse(raw) : raw; const s = B.restore(data); const rng = s.rng; C.hydrate(s, data.casebook); M.restoreTrees(s,data.ui?.investigationTrees); s.rng = rng; return s; }
+  function deserialize(raw) { const data = typeof raw === 'string' ? JSON.parse(raw) : raw; const s = B.restore(data); const rng = s.rng; C.hydrate(s, data.casebook); M.restoreTrees(s,data.ui?.investigationTrees,data.ui?.objectStates); s.rng = rng; return s; }
+  function updateAudioUI(){
+    const a=audio.status(),el=$('audio-button');if(!el)return;
+    el.textContent=a.playing?'声音 ♪':'声音';el.setAttribute('aria-label','声音设置，'+(a.playing?'音乐正在播放':a.ready?'音乐已关':'点击后启用'));
+    el.dataset.playing=String(a.playing);el.dataset.position=a.position.toFixed(2);
+    const message=$('audio-state');if(message)message.textContent=a.error||(a.ready?(a.playing?'环境乐正在连续播放，切换游戏页面不会中断。':'音乐已关闭，开合音效独立控制。'):'首次操作后启用声音；刷新网页后需要再次点击。');
+  }
+  function showAudio(){
+    const a=audio.status();modal('声音设置','<p id="audio-state" role="status"></p><div class="audio-controls"><button class="mind-tool-button" data-do="audio-music" aria-pressed="'+a.music+'">背景音乐：'+(a.music?'开启':'关闭')+'</button><button class="mind-tool-button" data-do="audio-effects" aria-pressed="'+a.effects+'">开合音效：'+(a.effects?'开启':'关闭')+'</button><label for="audio-volume">总音量 <output id="audio-volume-label">'+Math.round(a.volume*100)+'%</output></label><input id="audio-volume" type="range" min="0" max="100" step="1" value="'+Math.round(a.volume*100)+'" aria-label="总音量"></div><p>原创悬疑环境乐；木材、金属、塑料、玻璃、布料、纸张和机械开关使用不同的仿真声音，没有突然的大音量惊吓。音乐与音效可分别关闭，设置保存在本机。</p><p>现场、笔记、案卷与经营在同一网页内切换，音乐继续播放。刷新或离开网站会停止声音，回来后点击即可启用。</p>'+button('启用声音／重试','audio-start','',null,'secondary'));updateAudioUI();
+  }
   function claim(force = false) {
     const result=store.claim(force);owner=result.ok;if(result.unavailable)saveAvailable=false;return owner;
   }
@@ -161,7 +171,7 @@
     if(c.found.length>=2&&!linkDraft)html+='<button class="mind-tool-button" data-do="map-link-start">证物连线</button>';
     if(C.canHypothesize(state))html+='<button class="mind-tool-button" data-do="map-hypotheses">暂定猜测'+(C.hypothesisEntries(state).some(h=>h.status==='待验证')?' · 待验证':C.hypothesisEntries(state).some(h=>h.status==='已确认')?' · 已确认':'')+'</button>';
     if(C.history(state).length)html+='<button class="mind-tool-button" data-do="map-history">现场记录 · '+C.history(state).length+'</button>';
-    html += '<button class="mind-tool-button" data-do="map-hint">调查提示</button></div></div><p class="mind-gesture-tip">单击长出下一层 · 双击显示文字 · 展开的枝叶会保留</p>';
+    html += '<button class="mind-tool-button" data-do="map-hint">调查提示</button></div></div><p class="mind-gesture-tip">单击展开 · 双击阅读 · 实物可开合，关上只隐藏内部枝叶</p>';
     html+='<p class="mind-objective"><span>主线目标</span>'+esc(C.goal(state))+'</p>';
     if(C.changes(state).length)html+='<p class="mind-change-shortcut"><button class="text-button" data-do="map-changes">现场变化 · '+C.changes(state).filter(e=>!c.found.includes(e.key)).length+' 处待观察 ↓</button></p>';
     const optional=C.optionalGoal(state);if(optional)html+='<p class="mind-side-goal"><span>自由附查 · 可选</span>'+esc(optional)+'</p>';
@@ -226,6 +236,11 @@
   }
   function enterMapNode(action,value,label) {
     if(action==='tree-read')return readMapNode(action,value,label);
+    if(action==='object-toggle'){
+      if(!owner)return toast('请先在存档中接管本页值班。');
+      const r=M.toggleObject(state,value);if(!r.ok)return toast(r.message);
+      mapFocus={action,value,label:r.object.name,caseId:state.casebook.active,era:state.era};renderAnchored('branch:'+value);save();audio.play(r.object.sound,r.open);return toast(r.message);
+    }
     if(action==='tree-expand'){
       if(!owner)return toast('请先在存档中接管本页值班。');
       if(!M.grow(state,value))return;
@@ -266,6 +281,10 @@
   }
   function readMapNode(action,value,label) {
     const id=state.casebook.active,c=state.casebook.cases[id],d=C.DATA[id];
+    if(action==='object-toggle'){
+      const o=M.objects(state).find(o=>'object:'+o.id===value);if(!o)return;
+      return modal(o.name,'<p>'+esc(o.description)+'</p><p>单击物件按钮开合，双击只读说明。其他分支不受影响，开合本身不加经验、不消耗道具，也不会解开原本上锁的通路。</p>');
+    }
     if(action==='tree-expand')return modal(label,'<p>单击会在原来的图上长出下一层。这一枝与其他分支可以同时保留，刷新后也不会收起。双击具体证物查看文字；只有明确执行操作才推进机关。</p>');
     if(action==='tree-read'){
       const n=M.tree(state).nodes.find(n=>n.id===value);
@@ -275,7 +294,7 @@
     if(action==='map-room'){
       if(!M.visibleRooms(state).includes(value))return;
       const copy={...state,casebook:{...state.casebook,cases:{...state.casebook.cases,[id]:{...c,room:value}}}};
-      return modal(d.rooms[value].name,'<p class="evidence-read">'+esc(P.has(state,'map')?C.describe(copy):'雨后的大厅没有人声。墙上钉着招领须知，镜子映着空椅子。')+'</p>');
+      return modal(d.rooms[value].name,'<p class="evidence-read">'+esc(P.has(state,'map')?M.describe(copy):'雨后的大厅没有人声。墙上钉着招领须知，镜子映着空椅子。')+'</p>');
     }
     if(['inspect','map-read'].includes(action)){
       if(!c.found.includes(value)){if(!owner)return toast('请先接管本页值班。');const r=C.act(state,'inspect',value);if(!r.ok)return toast(r.message);render();save();}
@@ -296,7 +315,7 @@
   }
   function showMapRoom() {
     const id = state.casebook.active, c = state.casebook.cases[id];
-    modal(C.DATA[id].rooms[c.room].name, '<p class="evidence-read">' + esc(P.has(state, 'map') ? C.describe(state) : '雨后的大厅没有人声。墙上钉着招领须知，镜子映着空椅子。') + '</p>' + button('查看这个地点的节点', 'close-modal', '', null, 'secondary'));
+    modal(C.DATA[id].rooms[c.room].name, '<p class="evidence-read">' + esc(P.has(state, 'map') ? M.describe(state) : '雨后的大厅没有人声。墙上钉着招领须知，镜子映着空椅子。') + '</p>' + button('查看这个地点的节点', 'close-modal', '', null, 'secondary'));
   }
   function showMapMenu() {
     modal('调查工具', '<div class="map-menu">' + button('当前案卷', 'map-intro', '', null, 'secondary') + button('切换案卷', 'map-cases', '', null, 'secondary') + button('带我体验', 'guided-start', '', null, 'secondary') + button('查阅玩法', 'help', '', null, 'secondary') + button('现场留影', 'map-photo', '', null, 'secondary') + button('存档与说明', 'settings', '', null, 'secondary') + '</div>');
@@ -451,6 +470,7 @@
     });
   }
   document.addEventListener('click', event => {
+    if(event.isTrusted)audio.unlock();
     const point = { x: event.clientX, y: event.clientY, time: event.timeStamp, keyboard: event.detail === 0, caseId: state.casebook.active, era: state.era };
     if (tab === 'case' && !$('modal').open && M.secondClick(lastNodeGesture, point)) {
       const first = lastNodeGesture; lastNodeGesture = null; cancelNodeEntry();
@@ -474,6 +494,9 @@
     }
     cancelNodeEntry(); lastNodeGesture = null;
     if (action === 'close-modal') return $('modal').close();
+    if(action==='audio-settings')return showAudio();
+    if(action==='audio-music'||action==='audio-effects'){const key=action==='audio-music'?'music':'effects';audio.configure({[key]:!audio.status()[key]});showAudio();return;}
+    if(action==='audio-start'){audio.unlock();return;}
     if (action === 'map-view') { if (!['site', 'notes'].includes(value) || value === 'notes' && !P.has(state, 'notebook')) return; clearTimeout(nodeClickTimer);mapFocus=null;linkDraft=null;linkFeedback='';boardMode=value;if(value==='notes'){state.ui.notebookOpened=true;save();}render(true);return; }
     if(action==='map-back'){mapFocus=null;render(true);return;}
     if(action==='map-focus-read'){if(mapFocus)readMapNode(mapFocus.action,mapFocus.value,mapFocus.label);return;}
@@ -551,7 +574,7 @@
   });
   document.addEventListener('dblclick',event=>{if(event.target.closest('.mind-board'))event.preventDefault();});
   document.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.shiftKey&&event.target.matches('.mind-node')){event.preventDefault();cancelNodeEntry();lastNodeGesture=null;const el=event.target;readMapNode(el.dataset.do,el.dataset.value,el.querySelector('span').textContent);}});
-  document.addEventListener('input', event => { if (event.target.id === 'help-query') { helpResults(event.target.value); $('help-answer').innerHTML = ''; } if(event.target.id==='link-method'&&linkDraft&&Object.hasOwn(C.METHODS,event.target.value))linkDraft.method=event.target.value; });
+  document.addEventListener('input', event => { if(event.target.id==='audio-volume'){audio.configure({volume:Number(event.target.value)/100});$('audio-volume-label').textContent=event.target.value+'%';} if (event.target.id === 'help-query') { helpResults(event.target.value); $('help-answer').innerHTML = ''; } if(event.target.id==='link-method'&&linkDraft&&Object.hasOwn(C.METHODS,event.target.value))linkDraft.method=event.target.value; });
   document.addEventListener('submit', event => {
     if (event.target.id !== 'puzzle-form') return; event.preventDefault(); if (!owner) return toast('请先在设置中接管值班。');
     const data = new FormData(event.target), id = state.casebook.active;
@@ -576,7 +599,8 @@
   load(); render(true);
     if (!state.ui.introduced && owner) { state.ui.introduced = true; save(); }
   if (owner) save();
-  setInterval(() => { const now = Date.now(), elapsed = Math.max(0, (now - lastTick) / 1000); lastTick = now; if (owner && claim()) { B.advance(state, Math.min(elapsed, 7200)); if (now - lastSave > 10000) save(); } render(); }, 500);
+  updateAudioUI();
+  setInterval(() => { const now = Date.now(), elapsed = Math.max(0, (now - lastTick) / 1000); lastTick = now; if (owner && claim()) { B.advance(state, Math.min(elapsed, 7200)); if (now - lastSave > 10000) save(); } render();updateAudioUI(); }, 500);
   // Progressive enhancement: expose a read-only state summary where the browser supports WebMCP.
   if (document.modelContext && document.modelContext.registerTool) {
     try { Promise.resolve(document.modelContext.registerTool({ name: 'read_bureau_status', title: '查看管理局状态', description: 'Read the current visible game state without advancing time or changing any decisions.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: () => ({ era: state.era, level: B.level(state), resources: { ...state.r }, activeCase: state.casebook.active, solvedCases: C.ORDER.filter(k => state.casebook.cases[k].solved), evidence: [...state.casebook.cases[state.casebook.active].found], paused: state.paused }) })).catch(() => {}); } catch {}

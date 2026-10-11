@@ -11,7 +11,7 @@
       previous.caseId === current.caseId && previous.era === current.era &&
       Math.hypot(current.x - previous.x, current.y - previous.y) <= 10;
   }
-  function deferEntry(action) { return ['map-execute', 'case', 'goto'].includes(action); }
+  function deferEntry(action) { return ['map-execute', 'object-toggle', 'case', 'goto'].includes(action); }
   const SHORT = {
     'take-fuse': '取保险丝', 'take-pin': '取发夹', 'take-receipt': '取纸票', 'take-glass': '取旧镜片',
     'mirror-route': '撬开镜框', 'unlock': '打开登记室', 'lamp-ticket': '纸票透光', 'mirror-ledger': '映照擦痕',
@@ -51,6 +51,7 @@
     const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c),has=k=>f.flags.includes(k);
     if(id==='station'){
       const q=f.reasoning;
+      if(c.room==='workshop'&&!objectOpen(s,OBJECTS.find(o=>o.id==='fuse-box')))return has('powered')?'箱盖已合上，照明仍然接通。':'配电箱的铁盖合着，边缘留着湿手印。';
       if(c.room==='hall'){
         if(has('test-uncover'))return '纸票已移开，倒影正从镜框上收回手。';
         if(has('test-cover'))return f.mirrorCovered?(has('test-frame')?'镜面仍被遮住，纸票一角刚鼓起。':'镜面被纸票遮住，两下敲击从背面传来。'):'纸票已取回，镜面重新露出；记录仍留着。';
@@ -70,7 +71,10 @@
         if(f.items.includes('fuse'))return '椅底保险丝已收好，女人仍在等。';
         return '女人起身，一张湿纸票落在椅上。';
       }
-      if(c.room==='records')return has('ticket-lit')&&has('erasure')?'灯下的纸票与登记簿擦痕都已显现。':has('erasure')?'擦去的文字已读出，台灯仍亮着。':has('ticket-lit')?'纸票柜号已显现，登记簿仍留着擦痕。':'台灯一直亮着，登记簿最后一行被擦过。';
+      if(c.room==='records'){
+        if(!objectOpen(s,OBJECTS.find(o=>o.id==='desk-lamp')))return '台灯已熄灭，已有观察仍留在证物笔记里。';
+        return has('ticket-lit')&&has('erasure')?'灯下的纸票与登记簿擦痕都已显现。':has('erasure')?'擦去的文字已读出，台灯仍亮着。':has('ticket-lit')?'纸票柜号已显现，登记簿仍留着擦痕。':'台灯一直亮着，登记簿最后一行被擦过。';
+      }
       if(c.room==='counter')return c.solved?'认领已经完成，窗口仍亮着灯。':has('stamped')?'印章已经落下，认领栏等你填写。':'印章悬在表上，认领栏还是空的。';
     }
     if(id==='tuesday'){
@@ -146,6 +150,43 @@
     return { nodes, edges, height, width: 820, relations:confirmed.map(r=>[r.a,r.b,r.label]) };
   }
   const BRANCH_NAMES = {evidence:'现场证物',operations:'主线操作',reasoning:'镜面附查',experiment:'现场验证',truth:'寄存人核验',ability:'能力与支路',changes:'现场变化',travel:'前往地点'};
+  // Containers expose their contents; opening a cover never completes the
+  // operation inside it. These switches are deliberately separate from locks.
+  const OBJECTS = [
+    {caseId:'station',room:'workshop',id:'fuse-box',name:'配电箱',sound:'metal',evidence:['detail0'],actions:['power'],description:'有铰链的铁箱盖。打开后才能看到线路和保险丝槽；装入保险丝仍需亲自执行。'},
+    {caseId:'station',room:'records',id:'claim-drawer',name:'待认领抽屉',sound:'wood',evidence:['ledger','handwriting'],actions:['mirror-ledger'],description:'木抽屉里放着登记簿。关上只收起内部枝叶，已经记录的文字和擦痕不会丢失。'},
+    {caseId:'station',room:'records',id:'desk-lamp',name:'台灯',sound:'switch',evidence:[],actions:['lamp-ticket'],defaultOpen:true,on:'点亮',off:'关掉',description:'带机械开关的台灯。点亮后可以将纸票放在灯下透光；关掉不会抹去已经显影的记录。'},
+    {caseId:'tuesday',room:'bench',id:'desk-drawer',name:'值班桌抽屉',sound:'wood',evidence:[],actions:['take-battery'],description:'桌侧的木抽屉。电池在里面，打开不等于取走；仍需执行取电池。'},
+    {caseId:'tuesday',room:'workshop',id:'battery-cover',name:'磁带机电池盖',sound:'plastic',evidence:[],actions:['power'],description:'磁带机背后的塑料盖。打开可操作电池槽；合上盖子不会撤销已修好的供电。'},
+    {caseId:'tuesday',room:'records',id:'time-jars',name:'时间罐盖',sound:'glass',evidence:['labels'],actions:[],description:'玻璃时间罐带着旋盖。打开查看标签，盖回后标签的调查记录仍留在笔记里。'},
+    {caseId:'city',room:'bench',id:'coat-pocket',name:'外套衣袋',sound:'cloth',evidence:['coat'],actions:['take-lens'],description:'外套上的翻盖衣袋。掀开查看工作证和镜片；合上不会把已经拿到的道具放回去。',on:'掀开',off:'合上'},
+    {caseId:'city',room:'workshop',id:'projector-cover',name:'投影仪检修盖',sound:'metal',evidence:['detail0'],actions:['project'],description:'投影仪的检修盖。打开可安装校准镜片；合盖只收起检修分支，不会关闭已经启动的投影。'},
+    {caseId:'city',room:'records',id:'original-folder',name:'原始卷宗夹',sound:'paper',evidence:['files','manual'],actions:[],description:'夹扣固定着原始卷宗。展开阅读，合起收好；已经拼合的先后关系保留。',on:'展开',off:'合起'}
+  ];
+  const objectKey = (s,o) => s.casebook.active+':'+o.room+':'+o.id;
+  function objects(s){return OBJECTS.filter(o=>o.caseId===s.casebook.active&&o.room===s.casebook.cases[s.casebook.active].room);}
+  function objectOpen(s,o){const v=s.ui?.objectStates?.[objectKey(s,o)];return typeof v==='boolean'?v:o.defaultOpen===true||opened(s).includes('object:'+o.id);}
+  function restoreObjects(s,raw){
+    if(!raw||typeof raw!=='object'||Array.isArray(raw))return s;
+    const clean={};
+    for(const o of OBJECTS){const key=o.caseId+':'+o.room+':'+o.id;if(Object.hasOwn(raw,key)&&typeof raw[key]==='boolean')clean[key]=raw[key];}
+    s.ui ||= {};s.ui.objectStates=clean;return s;
+  }
+  function toggleObject(s,token){
+    const o=objects(s).find(o=>'object:'+o.id===token);
+    if(!o||!P.has(s,'map')||C.blocked(s,o.room))return {ok:false,message:'此物件尚未开放。'};
+    const open=!objectOpen(s,o);s.ui ||= {};s.ui.objectStates ||= {};s.ui.objectStates[objectKey(s,o)]=open;
+    if(open){s.ui.investigationTrees ||= {};s.ui.investigationTrees[treeKey(s)]=[...new Set([...opened(s),token])];}
+    return {ok:true,open,object:o,message:open?'内部枝叶已展开；拿取和修复仍需执行操作。':'内部枝叶已隐藏；证物、道具与调查记录保留。'};
+  }
+  function describe(s){
+    let text=C.describe(s);
+    const box=objects(s).find(o=>o.id==='fuse-box');
+    if(box&&!objectOpen(s,box))return '配电箱的箱盖合着，湿手印留在边缘。打开箱盖可以检查线路与缺失部件。'+(C.field(s.casebook.cases.station).flags.includes('powered')?'照明仍然接通；合盖没有切断电力。':'');
+    const lamp=objects(s).find(o=>o.id==='desk-lamp');
+    if(lamp&&!objectOpen(s,lamp))text=text.replace(/台灯[^。]*。/g,'台灯已熄灭。').replace('把纸票放到灯下观察；','点亮台灯后才能透光观察；')+' 你关掉了台灯；已有观察仍可在证物笔记中回看。';
+    return text;
+  }
   const category = a => ['annex','niche-reward'].includes(a.id)?'ability':primary(a)?'operations':a.group==='reasoning'?'reasoning':a.group==='experiment'?'experiment':a.id.startsWith('truth-')?'truth':'ability';
   function catalog(s) {
     const id=s.casebook.active,c=s.casebook.cases[id],d=C.DATA[id];
@@ -160,7 +201,15 @@
     if(changes.length)groups.push({token:'changes',children:changes,scope:'side'});
     const rooms=visibleRooms(s).filter(k=>k!==c.room).map(k=>({id:'room:'+k,label:d.rooms[k].name,type:'room',action:'map-room',value:k,visited:C.field(c).visited.includes(k),hint:'前往'}));
     if(rooms.length)groups.push({token:'travel',children:rooms,scope:'travel'});
-    return groups;
+    if(P.has(s,'map'))for(const object of objects(s)){
+      const matches=n=>n.type==='evidence'?object.evidence.includes(n.value):n.type==='action'&&object.actions.includes(n.value);
+      const children=groups.flatMap(g=>g.children.filter(matches));
+      if(!children.length)continue;
+      for(const g of groups)g.children=g.children.filter(n=>!matches(n));
+      const travel=groups.findIndex(g=>g.token==='travel');
+      groups.splice(travel<0?groups.length:travel,0,{token:'object:'+object.id,children,scope:'main',object});
+    }
+    return groups.filter(g=>g.children.length);
   }
   const treeKey = s => s.casebook.active+':'+s.casebook.cases[s.casebook.active].room;
   function opened(s){const saved=s.ui?.investigationTrees?.[treeKey(s)];return Array.isArray(saved)?saved:['evidence'];}
@@ -169,9 +218,11 @@
     if(!parent)return false;
     s.ui ||= {};s.ui.investigationTrees ||= {};
     s.ui.investigationTrees[treeKey(s)]=[...new Set([...opened(s),parent.token,token])];
+    if(parent.object){s.ui.objectStates ||= {};s.ui.objectStates[objectKey(s,parent.object)]=true;}
     return true;
   }
-  function restoreTrees(s,raw) {
+  function restoreTrees(s,raw,rawObjects) {
+    restoreObjects(s,rawObjects);
     if(!raw||typeof raw!=='object'||Array.isArray(raw))return s;
     const clean={};
     for(const id of C.ORDER)for(const room of Object.keys(C.DATA[id].rooms)){
@@ -193,9 +244,9 @@
     const root='room:'+c.room,nodes=[{id:root,label:d.rooms[c.room].name,type:'root',action:'map-room',value:c.room,active:true,x:82,y:100,depth:0,scope:'main',hint:'你在这里',sceneState:sceneState(s),sceneMark:trace}],edges=[];
     let row=100;
     for(const g of catalog(s)){
-      const parent='branch:'+g.token,isOpen=g.token==='changes'||expanded.includes(g.token),label=BRANCH_NAMES[g.token];
+      const parent='branch:'+g.token,isOpen=g.object?objectOpen(s,g.object):g.token==='changes'||expanded.includes(g.token),label=g.object?(isOpen?(g.object.off||'关上'):(g.object.on||'打开'))+g.object.name:BRANCH_NAMES[g.token];
       const completed=g.children.filter(n=>n.done&&n.hint!=='待验证').length,done=g.children.length>0&&completed===g.children.length;
-      nodes.push({id:parent,label,type:'branch',action:'tree-expand',value:g.token,x:285,y:row,depth:1,scope:g.scope,expanded:isOpen,done,hint:g.token==='changes'?'操作留下的变化':g.token==='travel'?'选择目的地':`${completed}/${g.children.length} ${g.token==='evidence'?'已记录':'已完成'} · ${isOpen?'已展开':'展开'}`});
+      nodes.push({id:parent,label,type:g.object?'object':'branch',action:g.object?'object-toggle':'tree-expand',value:g.token,x:285,y:row,depth:1,scope:g.scope,expanded:isOpen,done:g.object?false:done,hint:g.object?(g.object.id==='desk-lamp'?(isOpen?'灯已亮':'灯已灭'):(isOpen?'已打开':'已合上'))+' · '+(isOpen?'内部 '+completed+'/'+g.children.length+' 已查':'内部枝叶隐藏'):g.token==='changes'?'操作留下的变化':g.token==='travel'?'选择目的地':`${completed}/${g.children.length} ${g.token==='evidence'?'已记录':'已完成'} · ${isOpen?'已展开':'展开'}`});
       edges.push({from:root,to:parent,active:g.scope==='main',scope:g.scope});
       if(isOpen)for(const n of g.children){
         nodes.push({...n,x:500,y:row,depth:2,scope:g.scope,expanded:n.type!=='room'?expanded.includes(n.id):undefined});
@@ -231,5 +282,5 @@
     else index=has('authorized')?3:has('projected')?2:c.found.length>=2||f.items.length?1:0;
     return labels.map((label,i)=>({label,status:i<index?'done':i===index?'current':'future'}));
   }
-  return { scene, sceneState, notes, tree, grow, restoreTrees, guideBranch, journey, visibleRooms, path, move, actions, primary, secondClick, deferEntry, ROW, DOUBLE_CLICK_MS };
+  return { scene, sceneState, describe, notes, tree, grow, restoreTrees, restoreObjects, objects, objectOpen, toggleObject, OBJECTS, guideBranch, journey, visibleRooms, path, move, actions, primary, secondClick, deferEntry, ROW, DOUBLE_CLICK_MS };
 });

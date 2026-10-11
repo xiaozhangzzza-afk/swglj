@@ -183,6 +183,12 @@ body.mind-mode{background:#f4f3ee;color:#303b3e}
 .mind-tree .mind-root:hover{background:#38545a}
 .mind-tree .mind-branch{background:#edf3f0;border:1px solid #cfddd7;color:#3f5c52;font-size:16px;box-shadow:none}
 .mind-tree .mind-leaf{background:#fafbf8;border:1px solid #d9dfd9;font-size:14px;box-shadow:none}
+.mind-tree .mind-object{background:#eeeae1;border-color:#cfc6b5;color:#594f3f;box-shadow:none;font-size:16px}
+.mind-tree .mind-object[aria-expanded="true"]{background:#f5f1e8;border-color:#b6a686}
+.mind-tree .mind-object small{color:#786a54}
+.audio-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0}
+.audio-controls label{width:100%;display:flex;justify-content:space-between}
+.audio-controls input{width:100%;accent-color:#5e8390;min-height:32px}
 .mind-tree .scope-side{--branch-color:#a28361;border-color:#dfd7cb;color:#635444;background:#fffdf8}
 .mind-tree .mind-branch.scope-side{background:#f4eee3;border:1px solid #e0d4c0}
 .mind-tree .scope-side small{color:#80715f}
