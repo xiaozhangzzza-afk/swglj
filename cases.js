@@ -35,7 +35,7 @@
         tape: { name: '磁带录音', read: c => '录音：“去的时候，先过「' + c.route[0] + '」，再到「' + c.route[1] + '」，最后在「' + c.route[2] + '」等我。”', deep: '录音中的人停顿了一次。她知道你会把原路当作归路。' },
         memo: { name: '播放器便笺', read: () => '“别照抄录音。那是进来的路线。回家的人，从最后一扇门开始。”', deep: '背面写着：记得结束等待，不要替她再等一年。' },
         labels: { name: '三个时间标签', read: () => '昨天、今天、明天各只能经过一次。重复的门会把你送回原地。', deep: '没有哪一天值得永远重复，即使那天你很幸福。' },
-        log: { name: '保管室记录', read: () => '“星期二：失主仍在等待来信。暂扣至约定结束。”下方有两种处置：归还等待，或封存等待。', deep: '归还让当事人释然，封存让管理局拥有更多可用的记忆。' },
+        log: { name: '保管室记录', read: () => '“星期二：失主仍在等待来信。暂扣至约定结束。”下方有两种处置：归还等待，或封存等待。', deep: '归还让当事人释然；封存将这份等待留在管理局。' },
         lever: { name: '开门杆', read: () => '开门杆可以反复校验。错误的路线不会杀死你，只会让这一天变得更难醒来。', deep: '先看录音，再想你究竟是在进门，还是在回家。' }
       }, hints: ['录音给的是进来的顺序，墙上与便笺说的是离开的顺序。', '将录音中三个时间词的顺序完全倒过来，每个词使用一次。', c => '离开顺序：' + [...c.route].reverse().join(' → ') + '。'] },
     city: { number: '03', name: '城市等待认领', location: '不存在的市政档案馆', intro: '所有街道都通向这栋楼。每一个窗口都写着同一个地址：失物管理局。', xp: 135,
@@ -108,7 +108,7 @@
       const techs = id === 'station' ? ['catalog', 'imprint', 'recall'] : id === 'tuesday' ? ['mapping', 'binding', 'charter'] : ['deep', 'municipal'];
       for (const t of techs) if (!s.tech.includes(t)) s.tech.push(t);
       if (id === 'station') { s.buildings.shelf = Math.max(1, s.buildings.shelf); s.buildings.office = Math.max(1, s.buildings.office); s.buildings.inbox = Math.max(1, s.buildings.inbox); B.log(s, '你领回了自己的倒影。女人留下收件箱和一间办公室的钥匙，管理局正式开门。', 'story'); }
-      if (id === 'tuesday') { s.buildings.vault = Math.max(1, s.buildings.vault); B.log(s, c.resolution === 'return' ? '你归还了那份等待。走廊的钟终于走过星期二。信任 +8。' : '你封存了那份等待。钟声归来，抽屉里多了几段记忆。信任 −3。', 'story'); s.trust = Math.max(0, Math.min(100, s.trust + (c.resolution === 'return' ? 8 : -3))); }
+      if (id === 'tuesday') { s.buildings.vault = Math.max(1, s.buildings.vault); B.log(s, c.resolution === 'return' ? '你归还了那份等待。走廊的钟终于走过星期二。' : '你封存了那份等待。钟声归来，抽屉里留着未曾寄出的过去。', 'story'); s.trust = Math.max(0, Math.min(100, s.trust + (c.resolution === 'return' ? 8 : -3))); }
       if (id === 'city') { s.buildings.machine = 1; s.ended = true; B.log(s, '城市的失主，是曾经决定遗忘的你。遗忘协议已经备妥；这一次，选择权仍属于你。', 'story'); }
       const aid = id === 'station' ? ['umbrella', 'ticket'] : id === 'tuesday' ? ['clock', 'name'] : ['city', 'stamp'];
       const chosen = aid[Math.floor(B.random(s) * aid.length)];
@@ -117,7 +117,7 @@
       const rewards = id === 'station' ? { clues: 28, ink: 16, memory: 8 } : id === 'tuesday' ? { clues: 40, ink: 28, memory: 18, anchors: 10, fragments: 3 } : { memory: 30, anchors: 18, ink: 35, fragments: 5 };
       if (c.resolution === 'seal') { rewards.memory = (rewards.memory || 0) + 8; s.stability = Math.max(0, s.stability - 3); }
       const cap = B.caps(s); for (const [k, v] of Object.entries(rewards)) s.r[k] = Math.min(cap[k], s.r[k] + v);
-      B.log(s, '案件 ' + d.number + ' 完成，经验 +' + d.xp + '。获得藏品「' + B.ARTIFACTS[chosen].name + '」并解锁新的经营技术。', 'rare');
+      B.log(s, '案件 ' + d.number + ' 完成，经验 +' + d.xp + '。收容藏品「' + B.ARTIFACTS[chosen].name + '」。新的调查已经显现。', 'rare');
       return { ok: true, solved: true };
     }
     return { ok: false, message: '未知现场操作。' };

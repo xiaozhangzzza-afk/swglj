@@ -1,5 +1,5 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./investigation.js'), require('./progression.js'));
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./investigator.js'), require('./progression.js'));
   else root.InvestigationMap = factory(root.Cases, root.Progression);
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (C, P) {
   'use strict';
@@ -46,7 +46,7 @@
   function actions(s) {
     return P.has(s, 'map') ? C.actions(s).filter(a => !a.done && (a.reason === undefined || !['sense', 'read', 'compare'].includes(a.id) || !a.reason)) : [];
   }
-  function primary(a) { return !['experiment','reasoning'].includes(a.group) && !a.id.startsWith('truth-') && !['sense', 'read', 'compare', 'legacy-pocket', 'niche-open'].includes(a.id); }
+  function primary(a) { return !['experiment','reasoning','ability'].includes(a.group) && !a.id.startsWith('truth-') && !['sense', 'read', 'compare', 'legacy-pocket', 'niche-open'].includes(a.id); }
   function sceneState(s) {
     const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c),has=k=>f.flags.includes(k);
     if(id==='station'){

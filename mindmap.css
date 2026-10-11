@@ -137,32 +137,42 @@ body.mind-mode{background:#e8e8de;color:#30382f}
   .mind-tools button{flex:1 1 135px;font-size:16px;padding:9px 12px}
   .mind-toolbar{flex-wrap:wrap;gap:12px;align-items:flex-start}
   .mind-current h2{font-size:23px}.mind-context-actions{justify-content:flex-start;gap:8px}
-  .mind-board{height:auto;display:flex;flex-direction:column;gap:10px;padding:12px 0 8px;margin:8px 0}
-  .mind-lines{display:none}
-  .mind-node{position:relative;left:auto;top:auto;transform:none;width:calc(100% - 42px);min-height:72px;font-size:18px;margin-left:42px}
-  .mind-node:before{content:'';position:absolute;left:-26px;top:24px;width:25px;border-top:1px solid #b8c4aa}
-  .mind-node:after{content:'';position:absolute;left:-26px;top:-11px;height:35px;border-left:1px solid #b8c4aa}
-  .mind-root{width:calc(100% - 10px);margin:0 0 4px;min-height:80px;text-align:left;font-size:21px}
-  .mind-root:before,.mind-root:after{display:none}
-  .mind-root{order:0}
-  .mind-evidence,.mind-action,.mind-optional,.mind-solve{order:2}
-  .mind-room{width:calc(100% - 26px);margin-left:26px}
-  .mind-room{order:4}
-  .mind-room.is-current{order:1}
-  #mind-parent{order:4}
-  .mind-column-label{position:static;transform:none;order:3;margin:8px 0 0 26px}
-  .mind-room:before,.mind-room:after{left:-13px;width:12px}
-  .mind-room:after{width:0}
   .mind-foot{gap:10px;flex-wrap:wrap;padding-top:10px}
   .mind-foot>span:first-child{width:100%;margin:0}
   .mind-mode footer{font-size:11px;padding:12px 14px}
-  .mind-tree .mind-node{order:initial;margin-left:calc(var(--depth)*22px);width:calc(100% - var(--depth)*22px);font-size:17px;min-height:66px}
-  .mind-tree .mind-node:before{left:-14px;width:13px}.mind-tree .mind-node:after{left:-14px;width:0}
-  .mind-tree .mind-root{font-size:21px;margin-bottom:8px;min-height:90px}
-  .mind-tree .mind-branch{margin-top:18px}.mind-tree .mind-branch small{font-size:13px}
-  .mind-tree .mind-leaf{font-size:15px;min-height:58px}
   .mind-journey li{font-size:12px;padding-right:4px}.mind-journey li>span{margin-right:4px}
 }
+/* Keep the same horizontal hierarchy at every width; small screens pan, not stack. */
+.mind-viewport{overflow:auto;overscroll-behavior:contain;max-height:max(370px,calc(100dvh - 330px));min-height:280px;border:1px solid #dce1dc;border-radius:12px;background:#faf9f5;cursor:grab;scrollbar-width:thin;scrollbar-color:#98aba7 #efeee8}
+.mind-viewport:focus-visible{outline:2px solid #5e8390;outline-offset:3px}
+.mind-viewport.is-dragging{cursor:grabbing;user-select:none}
+.mind-canvas-frame{position:relative;flex:none}
+.mind-viewport .mind-board{width:1040px;height:var(--board-height);margin:0;padding:0;display:block;transform-origin:left top}
+.mind-viewport .mind-node{width:184px;position:absolute;left:var(--node-x);top:var(--node-y);transform:translate(-50%,-50%);margin:0;min-height:72px;font-size:17px}
+.mind-viewport .mind-root{width:184px;min-height:94px;font-size:20px}
+.mind-viewport .mind-leaf{font-size:15px}
+.mind-viewport .mind-lines{display:block}
+.mind-canvas-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 8px;font-size:12px;color:#657773}
+.mind-canvas-tools>span{margin-right:auto}
+.mind-canvas-tools button{min-height:32px;padding:4px 9px;font-size:12px;border:1px solid #d4ddd9;background:#fffefb;color:#465c57;border-radius:5px}
+.mind-canvas-tools output{min-width:36px;text-align:center;font-variant-numeric:tabular-nums}
+.mind-mode .mind-heading{margin-bottom:8px}.mind-mode .mind-heading h1{font-size:25px}
+.mind-mode .mind-heading>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.mind-mode .mind-heading .tiny-label{font-size:11px;letter-spacing:.5px}
+.mind-mode .mind-tools{gap:7px;margin:8px 0 10px;padding-bottom:10px}
+.mind-mode .mind-tools button{flex:none;min-height:36px;font-size:14px;padding:6px 11px}
+.mind-mode .mind-journey{margin:5px 0 9px}.mind-mode .mind-journey li{font-size:12px;padding:5px 10px 5px 0}
+.mind-mode .mind-toolbar{flex-wrap:wrap;gap:6px 14px}.mind-mode .mind-context-actions{justify-content:flex-start;gap:6px}
+.mind-mode .mind-tool-button{min-height:34px;font-size:14px;padding:6px 10px}
+.mind-mode .mind-gesture-tip{font-size:12px;margin:0}
+.mind-mode .mind-objective{font-size:14px;margin:8px 0 0}
+.archive-page{max-width:900px}.archive-page>p,.archive-next p{font-size:15px;line-height:1.8;color:#5c6c69}
+.archive-cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:24px 0}
+.archive-cases .map-record{padding:16px;background:#fffefb;border:1px solid #dce1dc;border-radius:9px}
+.archive-collection,.xp-details{margin:20px 0}.archive-collection>summary,.xp-details>summary{cursor:pointer;font-size:16px;padding:12px 0;color:#3f5c52}
+.archive-next{padding:20px 0;margin-top:20px;border-top:1px solid #dce1dc}
+#field-notes{display:block;box-sizing:border-box;width:100%;resize:vertical;font-family:inherit;font-size:16px;line-height:1.8;margin-top:12px;padding:12px;background:#fffefb;color:#304944;border:1px solid #c9d3cd;border-radius:7px}
+@media(max-width:480px){.mind-canvas-tools>span{flex-basis:100%}.mind-mode .mind-heading>div{display:block}.mind-mode .mind-heading h1{font-size:21px}.mind-mode .mind-heading .quiet-button{padding:7px;font-size:12px}.mind-location{padding:5px 0}.mind-mode .topbar #clock{font-size:12px}.mind-mode .topbar-actions{gap:4px}.mind-mode .topbar .quiet-button{padding:5px 7px}}
 /* Investigation cards: Mind Elixir-inspired rounded connectors, locally rendered.
    Completion changes emphasis only; no node is removed, reordered or auto-folded. */
 body.mind-mode{background:#f4f3ee;color:#303b3e}

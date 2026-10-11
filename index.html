@@ -2,13 +2,13 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="收容被世界遗忘之物。中文诡异解谜、调查与增量经营游戏。">
+  <meta name="description" content="收容被世界遗忘之物。以生长思维导图游玩的中文诡异解谜探险游戏。">
   <title>失物管理局 · 请勿寻找自己</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23141f22'/%3E%3Cpath d='M10 12h20v19H10zM16 12V7h8v5M16 21h8' fill='none' stroke='%23dfbd7c' stroke-width='2'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=083">
-  <link rel="stylesheet" href="dossier.css?v=083">
-  <link rel="stylesheet" href="mindmap.css?v=083">
-  <script defer src="engine.js?v=083"></script><script defer src="cases.js?v=083"></script><script defer src="exploration.js?v=083"></script><script defer src="depth.js?v=083"></script><script defer src="investigation.js?v=083"></script><script defer src="progression.js?v=083"></script><script defer src="help.js?v=083"></script><script defer src="mindmap.js?v=083"></script><script defer src="node-effects.js?v=083"></script><script defer src="storage.js?v=083"></script><script defer src="diagram-edges.js?v=083"></script><script defer src="audio.js?v=083"></script><script defer src="app.js?v=083"></script>
+  <link rel="stylesheet" href="style.css?v=090">
+  <link rel="stylesheet" href="dossier.css?v=090">
+  <link rel="stylesheet" href="mindmap.css?v=090">
+  <script defer src="engine.js?v=090"></script><script defer src="cases.js?v=090"></script><script defer src="exploration.js?v=090"></script><script defer src="depth.js?v=090"></script><script defer src="investigation.js?v=090"></script><script defer src="investigator.js?v=090"></script><script defer src="progression.js?v=090"></script><script defer src="help.js?v=090"></script><script defer src="mindmap.js?v=090"></script><script defer src="node-effects.js?v=090"></script><script defer src="storage.js?v=090"></script><script defer src="diagram-edges.js?v=090"></script><script defer src="audio.js?v=090"></script><script defer src="app.js?v=090"></script>
 </head>
 <body>
   <div class="shell">
@@ -18,11 +18,7 @@
       <div class="index-label">卷宗目录</div><nav id="navigation" aria-label="管理局功能">
         <button class="nav-button active" data-tab="case"><span>01</span>异常案卷<i id="case-count">0/3</i></button>
         <button class="nav-button" data-tab="notebook"><span>02</span>调查笔记<i id="evidence-count">0</i></button>
-        <button class="nav-button" data-tab="work"><span>03</span>局内经营</button>
-        <button class="nav-button" data-tab="staff"><span>04</span>员工与方针</button>
-        <button class="nav-button" data-tab="research"><span>05</span>档案研究</button>
-        <button class="nav-button" data-tab="explore"><span>06</span>短程调查</button>
-        <button class="nav-button" data-tab="legacy"><span>07</span>藏品与传承</button>
+        <button class="nav-button" data-tab="legacy"><span>03</span>档案室</button>
       </nav>
       <div class="sidebar-bottom">
         <div class="career"><small>调查员资历</small><strong id="level-label">Lv. 1 · 见习调查员</strong><div class="meter"><i id="xp-bar"></i></div><span id="xp-label">0 / 24 经验</span><button class="text-button" data-do="levels">查看升级奖励</button></div>
@@ -45,7 +41,7 @@
           <div id="journal" class="journal"></div>
         </aside>
       </div>
-      <footer>失物管理局 / 生长导图版 0.8.3 <span>您的案卷留在本机 · 建议定期导出存档</span></footer>
+      <footer>失物管理局 / 纯调查导图版 0.9.0 <span>您的案卷留在本机 · 建议定期导出存档</span></footer>
     </div>
   </div>
   <dialog id="modal"><div class="modal-top"><h2 id="modal-title"></h2><button data-do="close-modal" class="quiet-button" aria-label="关闭对话框">关闭</button></div><div id="modal-body"></div></dialog>

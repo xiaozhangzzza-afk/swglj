@@ -146,7 +146,7 @@
       if (p === 'read') message = '隐去的痕迹：' + (id === 'station' ? '镜框的擦痕朝向登记室；纸票需要透光，擦去的墨需要映照。' : id === 'tuesday' ? '地面的磨痕与录音方向相反。归途应从来路的末端开始。' : '投影灯片决定机关顺序，卷宗决定历史顺序。这两种次序不是同一回事。');
       if (p === 'compare') message = '关系比对：' + (id === 'station' ? '纸票给柜号，登记簿给日期；倒影与物品描述共同指向失主。' : id === 'tuesday' ? '录音是去程，便笺要求反向；三道门每扇只走一次。' : '先遗忘才能登记，登记后才建局，建局后才开始值班。');
     } else if (p === 'niche-open') { f.flags.push(p); message = '柜后的冷风通向一处壁龛。随机支路已显现，不影响主线。'; }
-    else if (p === 'niche-reward') { f.flags.push(p); const reward = B.random(s) < 0.5 ? 'ink' : 'clues', amount = reward === 'ink' ? 4 : 8; s.r[reward] = Math.min(B.caps(s)[reward], s.r[reward] + amount); B.gainXP(s, 20); message = '收容未寄出的信。经验 +20，获得' + B.RES[reward].name + ' +' + amount + '。'; }
+    else if (p === 'niche-reward') { f.flags.push(p); const reward = B.random(s) < 0.5 ? 'ink' : 'clues', amount = reward === 'ink' ? 4 : 8; s.r[reward] = Math.min(B.caps(s)[reward], s.r[reward] + amount); B.gainXP(s, 20); message = '收容未寄出的信。经验 +20。'+(reward==='ink'?'信纸上只有一个墨点，它正缓慢地向你靠近。':'信封里夹着半张回执，收件人一栏被反复擦掉。'); }
     else if (p === 'legacy-pocket') { f.flags.push(p); if (!f.items.includes('glass')) f.items.push('glass'); message = '长期资历让你提前备好一枚旧镜片；此工具可在每次轮回重新取出，不替你完成机关。'; }
     else return E.act(s, type, p);
     B.log(s, message, 'event'); return { ok: true, message };
