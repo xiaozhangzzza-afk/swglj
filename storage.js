@@ -19,8 +19,13 @@
   }
   function create({storage,key,session,decode,now=Date.now}){
     const backup=key+'-backup',lease=key+'-lease';
+    let observed, observedSet=false;
+    const content=raw=>{try{const value=JSON.parse(raw);delete value.lastSaved;return JSON.stringify(value);}catch{return raw;}};
+    function changed(){return observedSet&&storage.getItem(key)!==observed;}
     function claim(force=false){
       try{
+        // A suspended page must reload the latest save even after the lease expires.
+        if(!force&&changed())return {ok:false,foreign:true,stale:true};
         const time=now(),lock=activeLease(storage.getItem(lease),time);
         if(!force&&lock&&lock.session!==session)return {ok:false,foreign:true};
         storage.setItem(lease,JSON.stringify({session,time}));return {ok:true};
@@ -31,13 +36,15 @@
       if(ownership.unavailable)return {ok:false,unavailable:true};
       try{
         const old=storage.getItem(key);
-        if(old){try{decode(old);storage.setItem(backup,old);}catch{/* Keep the last valid backup. */}}
-        state.lastSaved=now();storage.setItem(key,JSON.stringify(state));return {ok:true};
+        if(old&&content(old)!==content(JSON.stringify(state))){try{decode(old);storage.setItem(backup,old);}catch{/* Keep the last valid backup. */}}
+        const time=now(),raw=JSON.stringify({...state,lastSaved:time});
+        storage.setItem(key,raw);state.lastSaved=time;observed=raw;observedSet=true;return {ok:true};
       }catch{return {ok:false,unavailable:true};}
     }
     function read(){
       const unreadable=[];
       try{
+        observed=storage.getItem(key);observedSet=true;
         for(const [source,target] of [['main',key],['backup',backup]]){
           const raw=storage.getItem(target);if(!raw)continue;
           try{return {state:decode(raw),source,unreadable};}

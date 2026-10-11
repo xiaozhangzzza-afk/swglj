@@ -266,7 +266,8 @@
   function restore(raw) {
     if (!raw || typeof raw !== 'object' || raw.version !== VERSION) throw new Error('存档版本不受支持。');
     const bounded = (v, lo, hi, fallback = 0) => typeof v === 'number' && Number.isFinite(v) ? clamp(v, lo, hi) : fallback;
-    if (!raw.r || !raw.buildings || !Array.isArray(raw.tech)) throw new Error('存档缺少必要数据。');
+    const record=v=>v&&typeof v==='object'&&!Array.isArray(v);
+    if (!record(raw.r) || !record(raw.buildings) || !Array.isArray(raw.tech)) throw new Error('存档缺少必要数据。');
     const s = fresh(bounded(raw.rng, 1, 4294967295, 123456789));
     s.career.xp = bounded(raw.career && raw.career.xp, 0, 1e8);
     s.ui = { introduced: raw.ui && raw.ui.introduced === true, notebookOpened: raw.ui && raw.ui.notebookOpened === true, walkthrough: raw.ui && raw.ui.walkthrough === true, progressiveVersion: raw.ui && raw.ui.progressiveVersion === 1 ? 1 : 0, revealed: Array.isArray(raw.ui && raw.ui.revealed) ? [...new Set(raw.ui.revealed.filter(k => ['notebook', 'map', 'career', 'inventory', 'work', 'staff', 'research', 'explore', 'legacy'].includes(k)))] : [], operationsStarted: raw.ui && raw.ui.operationsStarted === true };

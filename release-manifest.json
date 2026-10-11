@@ -1,0 +1,97 @@
+{
+  "version": "1.0.0",
+  "files": {
+    "index.html": {
+      "bytes": 5399,
+      "sha256": "90334e3d62d18e81b63b786f033af46150a4a06ec6faa26f24cc33ed30e002f0"
+    },
+    "style.css": {
+      "bytes": 25594,
+      "sha256": "d575f58635a63eb65e23e59509ac44a9c26528c749ce317bef6ad4bfb794f2ec"
+    },
+    "dossier.css": {
+      "bytes": 15877,
+      "sha256": "56d2d417a0331a8b2838dc56536ca0490313b3fec7d07d6274dd53ce1394ceca"
+    },
+    "mindmap.css": {
+      "bytes": 22918,
+      "sha256": "9ea075f2fb3d400ff1b23372618f4b9c55859090737ccd0d4ae705321ef7eba3"
+    },
+    "app.js": {
+      "bytes": 79888,
+      "sha256": "c4c0ce7c0e4538f8ed88fe609f9a0caa45c3dc085a37306c430c34a55e510eb3"
+    },
+    "audio.js": {
+      "bytes": 6546,
+      "sha256": "6f2db2ea1733557979f45c897335492922002fdf1eceaba8afd13864086adbef"
+    },
+    "storage.js": {
+      "bytes": 3429,
+      "sha256": "b7e3e90881c4a6191da04b88e721412b7110fb153ab29471c89b78b91369135a"
+    },
+    "diagram-edges.js": {
+      "bytes": 960,
+      "sha256": "499dd81d45166df5134a365cee8caba532f419af36c939322fea2792dab0fd51"
+    },
+    "THIRD_PARTY_NOTICES.md": {
+      "bytes": 1535,
+      "sha256": "d11e0ecb707ea61b497d45fe8df1022453ad6f5c934852e64ba79b08539f680f"
+    },
+    "engine.js": {
+      "bytes": 33170,
+      "sha256": "234a62fe6295ce46d843c8cabf50ef9bc9fdcce66e6e28cb57ae531c3aa716c7"
+    },
+    "cases.js": {
+      "bytes": 15998,
+      "sha256": "07a6379564b10fcb294bee9a2ab9b095b4e4f0ccabee4f6fb0e83b3872194d79"
+    },
+    "exploration.js": {
+      "bytes": 13914,
+      "sha256": "7534a18c3c3c29aa5f79f6fdcd677201fd060f7fcfb0b7aedc2e142d3b509314"
+    },
+    "depth.js": {
+      "bytes": 19080,
+      "sha256": "aa92598a87aa7db0fa924321c1e507ee95b7e3c9616fd8c15e0ebdb3c6b8d78e"
+    },
+    "investigation.js": {
+      "bytes": 25767,
+      "sha256": "fae69c7a1e1ef25181465b020ac093ebaa2e9518e8213e9756c8631bfb40ca60"
+    },
+    "investigator.js": {
+      "bytes": 9165,
+      "sha256": "7a9ffc27e392530141b36f891c642b2644d546b49b16da4b78f3b429a0fd69a1"
+    },
+    "progression.js": {
+      "bytes": 1561,
+      "sha256": "4b8730bdffbb2ce530df1f6b9cec8ae2edc137c591e5881557fbc275aa034734"
+    },
+    "help.js": {
+      "bytes": 11795,
+      "sha256": "2dd5152b069a2a99edc6a28d4c43c3a5d264a2b691f831389043f57f5c59d0a6"
+    },
+    "mindmap.js": {
+      "bytes": 26344,
+      "sha256": "62bd9b3e6fcb28598db5b0025916b6e91fe27ecf312b00d0e2321525438364e7"
+    },
+    "node-effects.js": {
+      "bytes": 2400,
+      "sha256": "242a094e3553d26246d583b0c90b4c5a8da68c117f2c3172912c0d7b06b796ef"
+    },
+    "release.js": {
+      "bytes": 1933,
+      "sha256": "7ab0661fed1016be8944e8319abb3c1ee64c9648875b0630f8b1b3625c10ed51"
+    },
+    "assets/lost-property-office-horror.png": {
+      "bytes": 2604659,
+      "sha256": "a15d0ffec1f47d0cd6167200e341950f7a506fe04657a12d1d0ecc5e6c7a1d93"
+    },
+    "assets/tuesday-corridor-horror.png": {
+      "bytes": 2514760,
+      "sha256": "90b763d2355449c92aa516d783f5d2a85cb772931867e6b74834ae9b75044a49"
+    },
+    "assets/city-archive-horror.png": {
+      "bytes": 2334284,
+      "sha256": "cdaf87be511ccc9316cfa835f1edad72f113141d155a30980c2aafa3a921e69e"
+    }
+  }
+}

@@ -22,12 +22,14 @@
     const a=audio.status();modal('声音设置','<p id="audio-state" role="status"></p><div class="audio-controls"><button class="mind-tool-button" data-do="audio-music" aria-pressed="'+a.music+'">背景音乐：'+(a.music?'开启':'关闭')+'</button><button class="mind-tool-button" data-do="audio-effects" aria-pressed="'+a.effects+'">开合音效：'+(a.effects?'开启':'关闭')+'</button><label for="audio-volume">总音量 <output id="audio-volume-label">'+Math.round(a.volume*100)+'%</output></label><input id="audio-volume" type="range" min="0" max="100" step="1" value="'+Math.round(a.volume*100)+'" aria-label="总音量"></div><p>原创悬疑环境乐；不同材质的实物有不同开合声。音乐与音效可分别关闭，设置保存在本机。</p><p>现场、证物笔记与档案室在同一网页内切换，音乐继续播放。刷新或离开网站会停止声音，回来后点击即可启用。</p>'+button('启用声音／重试','audio-start','',null,'secondary'));updateAudioUI();
   }
   function claim(force = false) {
-    const result=store.claim(force);owner=result.ok;if(result.unavailable)saveAvailable=false;return owner;
+    const result=store.claim(force);owner=result.ok;if(result.unavailable)saveAvailable=false;
+    if(!owner){$('save-status').textContent='仅供查看';warn(result.stale?'其他页面已保存更新的进度。本页停止操作，请在存档中接管并载入最新进度。':'另一个页面正在值班。本页仅供查看，可在存档中接管。');}
+    return owner;
   }
   function save() {
     if (!owner) return false;
     const result=store.write(state);
-    if(result.foreign){owner=false;warn('另一个页面已接管。本页停止保存与推进，避免覆盖那边的进度。');return false;}
+    if(result.foreign){owner=false;$('save-status').textContent='仅供查看';warn('另一个页面已保存更新的进度。本页停止保存与推进；请在存档中接管并载入最新进度。');return false;}
     if(result.ok){
       saveAvailable = true; lastSave = Date.now();
       $('save-status').textContent = '已保存 · ' + new Date(lastSave).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); return true;
@@ -100,7 +102,7 @@
     if (id === 'station') fields = '<label for="code">四位取件码</label><input id="code" name="code" inputmode="numeric" autocomplete="off" maxlength="4" pattern="[0-9]{4}" placeholder="0000" required>' + select('owner', '被登记为失物的是', owners);
     else if (id === 'tuesday') fields = '<div class="sequence">' + [1, 2, 3].map(n => select('order' + n, '第 ' + n + ' 扇门', ['昨天', '今天', '明天'].map(k => [k, k]))).join('') + '</div>';
     else fields = '<div class="sequence">' + [1, 2, 3, 4].map(n => select('order' + n, '第 ' + n + ' 件事', [['shift', '你开始值班'], ['register', '登记城市'], ['forget', '市民遗忘'], ['bureau', '建成管理局']])).join('') + '</div>' + select('owner', '城市的失主', owners);
-    if (id !== 'station') fields += select('resolution', '破解后如何处置这份过去', [['return', '归还：让失主放下等待'], ['seal', '封存：将过去留下，稳定度 −3']]);
+    if (id !== 'station') fields += select('resolution', '破解后如何处置这份过去', [['return', id==='city'?'归还：让城市重新生活':'归还：让失主放下等待'], ['seal', id==='city'?'封存：由管理局保管城市，稳定度 −3':'封存：将过去留下，稳定度 −3']]);
     return '<form id="puzzle-form" class="puzzle-form"><h2>提交你的推理</h2><p class="progress-label">没有倒计时。错误校验仅扣 ' + (B.level(state) >= 2 ? 1 : 2) + ' 点稳定度，可重新核对。</p>' + fields + '<div class="button-row"><button class="button gold" type="submit">' + (id === 'tuesday' ? '校验归途' : '核对登记') + '</button><button type="button" class="button secondary" data-do="hint">查看提示</button></div></form>';
   }
   function walkthrough() {
@@ -160,7 +162,7 @@
     if(c.found.length>=2&&!linkDraft)html+='<button class="mind-tool-button" data-do="map-link-start">证物连线</button>';
     if(C.canHypothesize(state))html+='<button class="mind-tool-button" data-do="map-hypotheses">暂定猜测'+(C.hypothesisEntries(state).some(h=>h.status==='待验证')?' · 待验证':C.hypothesisEntries(state).some(h=>h.status==='已确认')?' · 已确认':'')+'</button>';
     if(C.history(state).length)html+='<button class="mind-tool-button" data-do="map-history">现场记录 · '+C.history(state).length+'</button>';
-    html += '<button class="mind-tool-button" data-do="map-hint">调查提示</button></div><p class="mind-gesture-tip">单击展开 · 双击阅读 · 实物开合不丢进度</p></div>';
+    html += '<button class="mind-tool-button" data-do="map-hint">调查提示</button></div><p class="mind-gesture-tip">点击展开，选中后点“阅读文字” · 双击快捷阅读 · 键盘 Shift＋Enter 阅读</p></div>';
     html+='<p class="mind-objective"><span>主线目标</span>'+esc(C.goal(state))+'</p>';
     if(linkDraft)html+=renderLinkDraft();
     if (g) html += '<p class="mind-guide" role="status">' + esc(g.title) + ' <button data-do="walkthrough-step" class="text-button">这一步怎么做</button><button data-do="walkthrough" class="text-button">收起引导</button></p>';
@@ -169,7 +171,7 @@
     const optional=C.optionalGoal(state);if(optional)html+='<p class="mind-side-goal"><span>自由附查 · 可选</span>'+esc(optional)+'</p>';
     if (boardMode === 'notes' && !c.found.length) html += '<p class="mind-empty">还没有证物，先回到现场观察。</p>';
     if (boardMode === 'notes' && model.relations?.length) html += '<button class="mind-tool-button" data-do="map-relations">已验证连线 · ' + model.relations.length + '</button>';
-    html += '<div class="mind-foot"><span>' + (boardMode === 'site' ? esc(d.rooms[c.room].name) : c.found.length + ' 件记录') + '</span><span>调查进度自动保存</span></div></section>';
+    html += '<div class="mind-foot"><span>' + (boardMode === 'site' ? esc(d.rooms[c.room].name) : c.found.length + ' 件记录') + '</span><span>'+(!owner?'本页仅供查看':saveAvailable?'操作后自动保存':'存档不可用，请导出')+'</span></div></section>';
     return html;
   }
   function drawMapLinks() {
@@ -224,6 +226,8 @@
     return {nodes,edges,width:820,height};
   }
   function enterMapNode(action,value,label) {
+    if(owner)claim();
+    if(action==='map-solve')return readMapNode(action,value,label);
     if(action==='tree-read')return readMapNode(action,value,label);
     if(action==='object-toggle'){
       if(!owner)return toast('请先在存档中接管本页值班。');
@@ -347,7 +351,8 @@
     html+='<div class="archive-cases">'+C.ORDER.filter(id=>C.unlocked(state,id)).map(id=>'<article class="map-record"><h3>'+esc(C.DATA[id].name)+'</h3><p>'+(state.casebook.cases[id].solved?'已结案 · '+(state.casebook.cases[id].resolution==='seal'?'封存过去':'归还过去'):'待调查')+'</p>'+button('回访案卷','case',id,null,'secondary')+'</article>').join('')+'</div><details class="archive-collection"><summary>异常藏品 · 本轮 '+state.artifacts.length+' / 6</summary><p>结案必得一件随机藏品。它们是故事收藏，不再提供生产加成，也不决定能否通关。</p><div class="card-grid">';
     html+=Object.entries(B.ARTIFACTS).map(([id,d])=>'<article class="management-card"><h3>'+esc(state.seen.includes(id)?d.name:'尚未见过的异常')+'</h3><p>'+esc(state.seen.includes(id)?d.text.split('。').slice(1).join('。'):'结案时可能收容。')+'</p><span class="tag">'+(state.artifacts.includes(id)?'本轮已收容':state.seen.includes(id)?'曾见过':'未收容')+'</span></article>').join('')+'</div></details>';
     if(!state.casebook.cases.city.solved)return html+'<p class="archive-next">完成第三案后，可以封存本轮案卷并主动开启新的调查。</p></section>';
-    return html+'<section class="archive-next"><h2>第一章完成：城市的失主</h2><p>可以继续回访，也可以封存旧卷。下一轮的案件参数与藏品重新随机；累计经验、等级和藏品见闻保留。Lv.10 后也保留关注对象，但不保留旧谜底。</p>'+button('封存旧卷，开启新一轮','reset-dialog','',null,'gold')+'</section></section>';
+    const ending=window.BureauRelease.chapter(state,'city');
+    return html+'<section class="archive-next"><h2>'+esc(ending.title)+'</h2><p>'+esc(ending.text)+'</p><p>三案主线已完成。可以继续回访、完成附查，或开启新一轮。新一轮保留累计经验、等级和藏品见闻，重新随机案件参数；Lv.10 后保留关注对象，不保留旧谜底。</p>'+button('封存旧卷，开启新一轮','reset-dialog','',null,'gold')+'</section></section>';
   }
   const renderers = { case: renderCase, notebook: renderNotebook, legacy: renderLegacy };
   function render(force = false) {
@@ -422,6 +427,7 @@
     });
   }
   document.addEventListener('click', event => {
+    if(owner)claim();
     if(event.isTrusted)audio.unlock();
     const point = { x: event.clientX, y: event.clientY, time: event.timeStamp, keyboard: event.detail === 0, caseId: state.casebook.active, era: state.era };
     if (tab === 'case' && !$('modal').open && M.secondClick(lastNodeGesture, point)) {
@@ -535,19 +541,19 @@
   document.addEventListener('dblclick',event=>{if(event.target.closest('.mind-board'))event.preventDefault();});
   document.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.shiftKey&&event.target.matches('.mind-node')){event.preventDefault();cancelNodeEntry();lastNodeGesture=null;const el=event.target;readMapNode(el.dataset.do,el.dataset.value,el.querySelector('span').textContent);}});
   document.addEventListener('input', event => { if(event.target.id==='audio-volume'){audio.configure({volume:Number(event.target.value)/100});$('audio-volume-label').textContent=event.target.value+'%';} if (event.target.id === 'help-query') { helpResults(event.target.value); $('help-answer').innerHTML = ''; } if(event.target.id==='link-method'&&linkDraft&&Object.hasOwn(C.METHODS,event.target.value))linkDraft.method=event.target.value; });
-  document.addEventListener('input',event=>{if(event.target.id==='field-notes'&&owner&&C.note(state,event.target.value))$('note-save-state').textContent=save()?'札记已保存':'未能保存，请导出存档';});
+  document.addEventListener('input',event=>{if(event.target.id==='field-notes'&&owner&&claim()&&C.note(state,event.target.value))$('note-save-state').textContent=save()?'札记已保存':'未能保存，请导出存档';});
   let canvasDrag=null;
   document.addEventListener('pointerdown',event=>{const v=event.target.closest('.mind-viewport');if(!v||event.pointerType!=='mouse'||event.button!==0||event.target.closest('button'))return;canvasDrag={v,x:event.clientX,y:event.clientY,left:v.scrollLeft,top:v.scrollTop};v.setPointerCapture(event.pointerId);v.classList.add('is-dragging');});
   document.addEventListener('pointermove',event=>{if(!canvasDrag)return;const d=canvasDrag;d.v.scrollLeft=d.left+d.x-event.clientX;d.v.scrollTop=d.top+d.y-event.clientY;});
   function endCanvasDrag(){if(canvasDrag)canvasDrag.v.classList.remove('is-dragging');canvasDrag=null;}
   document.addEventListener('pointerup',endCanvasDrag);document.addEventListener('pointercancel',endCanvasDrag);
   document.addEventListener('submit', event => {
-    if (event.target.id !== 'puzzle-form') return; event.preventDefault(); if (!owner) return toast('请先在设置中接管值班。');
+    if (event.target.id !== 'puzzle-form') return; event.preventDefault(); if (!owner||!claim()) return toast('请先在存档中接管并载入最新进度。');
     const data = new FormData(event.target), id = state.casebook.active;
     const payload = { code: data.get('code'), owner: data.get('owner'), order: [1, 2, 3, ...(id === 'city' ? [4] : [])].map(n => data.get('order' + n)), resolution: data.get('resolution') };
     if (id !== 'station' && (payload.order.some(v => !v) || !payload.resolution) || id !== 'tuesday' && !payload.owner) return toast('请先填完登记内容与处置方式。');
     const result = C.act(state, 'solve', payload); render(); save();
-    if(result.ok){mapFocus=null;render(true);modal('案卷已结案','<p>新的调查分支与奖励已经显现。</p>'+button('返回导图','close-modal','',null,'secondary'));}
+    if(result.ok){mapFocus=null;render(true);const ending=window.BureauRelease.chapter(state,id),next=C.ORDER[C.ORDER.indexOf(id)+1];modal(ending.title,'<p class="evidence-read">'+esc(ending.text)+'</p>'+(next?button('进入下一案','case',next):button('查看结局档案','goto','legacy'))+button('回访当前现场','close-modal','',null,'secondary'));}
     else { let feedback = $('puzzle-feedback'); if (!feedback) { feedback = document.createElement('p'); feedback.id = 'puzzle-feedback'; feedback.setAttribute('role', 'alert'); event.target.append(feedback); } feedback.textContent = result.message; }
   });
   $('import-file').addEventListener('change', async event => {
@@ -559,14 +565,15 @@
   document.addEventListener('keydown', event => { if (event.key === 'Escape') { cancelNodeEntry(); lastNodeGesture = null; $('modal').close(); } });
   $('modal').addEventListener('close', () => { if (introOpen) { state.ui.introduced = true; introOpen = false; save(); } });
   window.addEventListener('pagehide', () => { save();store.release(); });
+  window.addEventListener('pageshow', event => { if(event.persisted){clearCaseView();lastTick=Date.now();load();render(true);} });
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-  window.addEventListener('storage', event => { if (event.key === LEASE) { try { const lock = event.newValue && JSON.parse(event.newValue); if (lock && lock.session !== session) { owner = false; warn('另一个页面已接管值班。本页停止推进；可在设置中重新接管。'); } } catch { warn('值班标记无法读取，请在设置中接管本页；游戏存档未删除。'); } } });
+  window.addEventListener('storage', event => { if (event.key === LEASE) { try { const lock = event.newValue && JSON.parse(event.newValue); if (lock && lock.session !== session) { owner = false; $('save-status').textContent='仅供查看'; warn('另一个页面已接管值班。本页停止推进；可在设置中重新接管。');if(!document.hidden)render(true); } } catch { warn('值班标记无法读取，请在设置中接管本页；游戏存档未删除。'); } } });
   window.addEventListener('resize', drawMapLinks);
   load(); render(true);
     if (!state.ui.introduced && owner) { state.ui.introduced = true; save(); }
   if (owner) save();
   updateAudioUI();
-  setInterval(() => { const now = Date.now(), elapsed = Math.max(0, (now - lastTick) / 1000); lastTick = now; if (owner && claim()) { if(!document.hidden)C.advanceInvestigation(state,Math.min(elapsed,2));if (now - lastSave > 10000) save(); } render();updateAudioUI(); }, 500);
+  setInterval(() => { const now = Date.now(), elapsed = Math.max(0, (now - lastTick) / 1000); lastTick = now; if (owner && claim()) { if(!document.hidden)C.advanceInvestigation(state,Math.min(elapsed,2));if (now - lastSave > 10000) save(); } if(!document.hidden){render();updateAudioUI();} }, 1000);
   // Progressive enhancement: expose a read-only state summary where the browser supports WebMCP.
   if (document.modelContext && document.modelContext.registerTool) {
     try { Promise.resolve(document.modelContext.registerTool({ name: 'read_bureau_status', title: '查看管理局状态', description: 'Read the current visible game state without advancing time or changing any decisions.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: () => ({ era: state.era, level: B.level(state), resources: { ...state.r }, activeCase: state.casebook.active, solvedCases: C.ORDER.filter(k => state.casebook.cases[k].solved), evidence: [...state.casebook.cases[state.casebook.active].found], paused: state.paused }) })).catch(() => {}); } catch {}

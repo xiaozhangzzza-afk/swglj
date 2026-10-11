@@ -88,7 +88,7 @@
       if(c.room==='hall'&&has('aligned'))return '模型已经校准，地下街的入口显现了。';
       if(c.room==='hall'&&has('projected'))return '投影落在前厅，三枚街区机关亮起。';
       if(c.room==='bench'&&f.items.includes('lens'))return '校准镜片已收好，外套仍留在这里。';
-      if(c.room==='counter'&&c.solved)return '城市已经接回现实，归还台安静下来。';
+      if(c.room==='counter'&&c.solved)return c.resolution==='seal'?'封存印留在登记台，城市的街灯逐一熄灭。':'城市已经接回现实，归还台安静下来。';
     }
     // Use only the visible scene description, never randomized answers or hints.
     return C.describe(s).split(/[。！？]/)[0]+'。';
@@ -116,7 +116,7 @@
     if(reasoningActions.length){const done=reasoningActions.every(a=>a.done);leaves.push({id:'reasoning',label:'镜面附查',type:'optional',action:'map-group',value:'reasoning',done,hint:done?'此处已完成 · 回看记录':'追问 · 对照 · 回看记录'});}
     if (available.some(a => !primary(a)&&a.group!=='reasoning')) leaves.push({ id: 'optional', label: '验证与支路', type: 'optional', action: 'map-optional', value: '' });
     if (c.room === 'counter' && !c.solved && f.flags.includes(C.CONFIG[id].done)) leaves.push({ id: 'solve', label: '提交推理', type: 'solve', action: 'map-solve', value: '' });
-    if (c.solved) leaves.push({ id: 'next', label: id === 'city' ? '决定城市去向' : '下一份案卷', type: 'solve', action: id === 'city' ? 'goto' : 'case', value: id === 'city' ? 'legacy' : C.ORDER[C.ORDER.indexOf(id) + 1] });
+    if (c.solved) leaves.push({ id: 'next', label: id === 'city' ? '查看结局档案' : '下一份案卷', type: 'solve', action: id === 'city' ? 'goto' : 'case', value: id === 'city' ? 'legacy' : C.ORDER[C.ORDER.indexOf(id) + 1] });
     const supplies=leaves.filter(n=>n.type==='action'&&!n.done&&n.value.startsWith('take-'));
     const groups={supplies:supplies.length>1?supplies:[]};
     let choices=groups.supplies.length?leaves.filter(n=>!groups.supplies.includes(n)):leaves;
@@ -262,7 +262,7 @@
       row+=24;
     }
     if(c.room==='counter'&&!c.solved&&f.flags.includes(C.CONFIG[id].done)||c.solved){
-      const n=c.solved?{id:'next',label:id==='city'?'决定城市去向':'下一份案卷',action:id==='city'?'goto':'case',value:id==='city'?'legacy':C.ORDER[C.ORDER.indexOf(id)+1]}:{id:'solve',label:'提交推理',action:'map-solve',value:''};
+      const n=c.solved?{id:'next',label:id==='city'?'查看结局档案':'下一份案卷',action:id==='city'?'goto':'case',value:id==='city'?'legacy':C.ORDER[C.ORDER.indexOf(id)+1]}:{id:'solve',label:'提交推理',action:'map-solve',value:''};
       nodes.push({...n,type:'solve',x:285,y:row,depth:1,scope:'main',hint:c.solved?'继续':'核对主线'});edges.push({from:root,to:n.id,active:true});row+=104;
     }
     return {nodes,edges,width:820,height:Math.max(300,row-24),tree:true};

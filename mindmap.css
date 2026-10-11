@@ -234,3 +234,10 @@ body.mind-mode{background:#f4f3ee;color:#303b3e}
   .mind-tree .mind-node{font-size:16px}
   .mind-tree .mind-leaf{font-size:14px}
 }
+/* 1.0: persistent save feedback and keyboard/touch readability. */
+.mind-mode .topbar #save-status{display:block;font-size:12px;white-space:nowrap}
+.mind-mode .topbar{flex-wrap:wrap}
+.mind-mode button:focus-visible,.mind-viewport:focus-visible{outline:3px solid #386b85;outline-offset:3px}
+.mind-gesture-tip{line-height:1.7}
+@media(max-width:850px){.mind-mode .topbar-actions{flex-wrap:wrap;justify-content:flex-end}.mind-mode .topbar #save-status{order:5;flex-basis:100%;text-align:right}.mind-mode .mind-tool-button,.mind-mode .quiet-button{min-height:44px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

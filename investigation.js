@@ -220,7 +220,7 @@
   }
   function goal(s) {
     const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c),has=k=>f.flags.includes(k);
-    if(c.solved)return id==='city'?'这座城市已接回现实。接下来由你决定保留什么。':'本案已结案。可以继续下一案，或回访未查清的支路。';
+    if(c.solved)return id==='city'?(c.resolution==='seal'?'城市已被封存。可查看结局档案，或回访未查清的现场。':'城市已接回现实。可查看结局档案，或回访未查清的现场。'):'本案已结案。可以继续下一案，或回访未查清的支路。';
     if(!c.found.length&&id==='station')return '观察大厅留下的异常，弄清这里正在等待谁。';
     if(id==='station')return !has('opened')?'找到进入登记室的方法。':!has('ticket-lit')||!has('erasure')?'让残缺的取件信息重新显现。':!has('stamped')?'接通认领流程。':'核对取件信息，确认谁被登记为失物。';
     if(id==='tuesday')return !has('powered')?'让停摆的设备重新运转。':!has('rewound')?'找到改变走廊方向的方法。':!has('doors')?'亲自找回离开这一天的路线。':'核对归途，并决定如何结束这份等待。';

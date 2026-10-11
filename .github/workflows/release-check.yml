@@ -1,0 +1,31 @@
+name: Static release check
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify published files and scripts
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const {execFileSync} = require('node:child_process');
+          const manifest = JSON.parse(fs.readFileSync('release-manifest.json', 'utf8'));
+          for (const [file, expected] of Object.entries(manifest.files)) {
+            const data = fs.readFileSync(file);
+            const hash = crypto.createHash('sha256').update(data).digest('hex');
+            if (data.length !== expected.bytes || hash !== expected.sha256) throw Error('Release mismatch: ' + file);
+            if (file.endsWith('.js')) execFileSync(process.execPath, ['--check', file]);
+          }
+          const html = fs.readFileSync('index.html', 'utf8');
+          for (const match of html.matchAll(/(?:src|href)="([^"?]+)(?:\?[^" ]*)?"/g)) {
+            const file = match[1];
+            if (file.startsWith('data:') || file === '#') continue;
+            if (!manifest.files[file]) throw Error('Missing published dependency: ' + file);
+          }
+          console.log('Verified release ' + manifest.version);
+          NODE
