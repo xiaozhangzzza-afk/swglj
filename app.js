@@ -26,15 +26,20 @@
     if(!owner){$('save-status').textContent='仅供查看';warn(result.stale?'其他页面已保存更新的进度。本页停止操作，请在存档中接管并载入最新进度。':'另一个页面正在值班。本页仅供查看，可在存档中接管。');}
     return owner;
   }
+  // Every user mutation, including delayed and keyboard input, crosses this gate.
+  // Nested UI handlers batch their saves; the storage writer checks again at commit.
+  const changes=window.BureauStorage.mutationGate({check:()=>owner&&claim(),commit:save,denied:()=>toast('本页仅供查看，请在存档中接管并载入最新进度。'),failed:()=>toast(owner?'本次进度仍在内存，未能保存，请立即导出。':'本页已失去存档所有权；请接管最新进度。')});
+  const change=run=>changes.run(run);
   function save() {
+    if(changes.requestSave())return true;
     if (!owner) return false;
     const result=store.write(state);
     if(result.foreign){owner=false;$('save-status').textContent='仅供查看';warn('另一个页面已保存更新的进度。本页停止保存与推进；请在存档中接管并载入最新进度。');return false;}
     if(result.ok){
       saveAvailable = true; lastSave = Date.now();
-      $('save-status').textContent = '已保存 · ' + new Date(lastSave).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); return true;
+      $('save-status').textContent = '已保存 · ' + new Date(lastSave).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); if($('note-save-state'))$('note-save-state').textContent='札记已保存';return true;
     }
-    saveAvailable = false; $('save-status').textContent = '未能自动保存'; warn('浏览器未允许本地存档。请在「存档与说明」中导出存档，避免关闭后丢失进度。'); return false;
+    saveAvailable = false; $('save-status').textContent = '未能自动保存';if($('note-save-state'))$('note-save-state').textContent='未能保存，请导出存档';warn(result.backupUnavailable?'无法更新自动备份，已保留上次主存档。本次进度暂在内存，请立即导出。':'浏览器未允许本地存档。请在「存档与说明」中导出存档，避免关闭后丢失进度。'); return false;
   }
   function load() {
     const loaded=store.read();unreadableCopies=loaded.unreadable;
@@ -54,7 +59,11 @@
     const after=$('mind-'+id)?.getBoundingClientRect().top;
     if(Number.isFinite(before)&&Number.isFinite(after)&&before>=0&&before<window.innerHeight&&Math.abs(after-before)>1)window.scrollBy({top:after-before,behavior:'instant'});
   }
-  function modal(title, body) { $('modal-title').textContent = title; $('modal-body').innerHTML = body; if (!$('modal').open) $('modal').showModal(); }
+  let modalReturnFocus=null;
+  function modal(title, body) {
+    if(!$('modal').open){const e=document.activeElement;modalReturnFocus=e?{id:e.id,action:e.dataset?.do,value:e.dataset?.value}:null;}
+    $('modal-title').textContent = title; $('modal-body').innerHTML = body; if (!$('modal').open) $('modal').showModal();
+  }
   function helpResults(query = '') {
     const results = H.search(query);
     $('help-results').innerHTML = '<p class="progress-label">' + (query.trim() ? '找到 ' + results.length + ' 条说明' : '你可能想问') + '</p>' + (results.length ? results.map(e => button(esc(e.question), 'help-question', e.id, null, 'secondary')).join('') : '<p>暂时没有对应说明。试试“经验”“道具”“存档”或“实验”。</p>');
@@ -80,9 +89,10 @@
   function caseTabs() { if (C.ORDER.filter(id => C.unlocked(state, id)).length === 1) return ''; return '<div class="case-tabs">' + C.ORDER.filter(id => C.unlocked(state, id)).map(id => '<button class="case-tab ' + (state.casebook.active === id ? 'active' : '') + '" data-do="case" data-value="' + id + '"' + (!C.unlocked(state, id) ? ' disabled' : '') + '><strong>' + C.DATA[id].number + '</strong>' + C.DATA[id].name + '<span>' + (state.casebook.cases[id].solved ? '已结案' : C.unlocked(state, id) ? '待查' : '未显现') + '</span></button>').join('') + '</div>'; }
   function currentGuide() {
     const id = state.casebook.active, c = state.casebook.cases[id], d = C.DATA[id];
+    if(id==='station'&&!c.solved&&!P.has(state,'map'))return {step:'01',title:'先观察现场',text:'单击招领须知展开，再点“阅读文字”；记录后查看出现的镜子。双击或 Shift＋Enter 也可阅读。'};
     if (!c.solved && (!C.field(c).flags.includes(C.CONFIG[id].done) || id === 'station' && C.nextStep(state))) return { step: '实操', title: '先改变现场，再提交推理', text: C.objective(state) + '。沿地图连接移动；道具不会因重试丢失。' };
-    if (c.solved) return { step: '已结案', title: id === 'city' ? '决定这座城市的去向' : '下一处异常已经显现', text: id === 'city' ? '在档案室封存旧卷，或继续回访未查清的现场。是否开启下一轮由你决定。' : '进入下一份案卷，也可以回访这一案尚未查清的支路。' };
-    if (!c.found.length) return { step: '01', title: '先观察现场', text: '双击证物节点阅读。单击地点切换现场，看看证物之间有哪些矛盾。' };
+    if (c.solved) return { step: '已结案', title: id === 'city' ? '三案主线已完成' : '下一处异常已经显现', text: id === 'city' ? '城市处置已记录。可查看结局档案、回访附查，或自愿封存旧卷开启下一轮。' : '进入下一份案卷，也可以回访这一案尚未查清的支路。' };
+    if (!c.found.length) return { step: '01', title: '先观察现场', text: '单击证物后点“阅读文字”，也可双击快捷阅读。单击地点切换现场，寻找证物之间的矛盾。' };
     if (c.found.length < 3) return { step: '02', title: '到其他房间补齐证据', text: '已记录 ' + c.found.length + ' 件证物。点击房间名称切换地点；首次发现每件证物都会增加经验。' };
     if (!state.ui.notebookOpened) return { step: '03', title: '比对调查笔记', text: '打开“调查笔记”，把不同物品上的信息连起来。主线无需等资源，也没有解谜倒计时。' };
     if (c.room !== 'counter') return { step: '04', title: '准备提交推理', text: '到“' + d.rooms.counter.name + '”填写答案。不确定时，可点“需要一点提示”，提示逐层展开。' };
@@ -92,9 +102,9 @@
   function showGuide(intro = false) {
     introOpen = intro;
     const g=currentGuide();
-    modal('此刻怎么调查','<p>'+esc(g.title+'：'+g.text)+'</p><ol class="list-simple"><li>单击长出枝叶，双击证物阅读；已展开的普通分支一直留下。</li><li>单击操作节点，再点“执行操作”。实物可开合；关上不丢进度。</li><li>记录两件证物后可亲手连线。机关与推理都要你来完成。</li></ol><p>横向拖动画布、触屏滑动，或用缩放按钮查看更远的枝叶。没有生产等待和解谜倒计时。经验只来自首次调查与结案，等级能力和附查不是主线门槛。</p><div class="button-row">'+button('带我体验','guided-start')+button('回到现场','start-investigation','',null,'secondary')+button('经验与升级奖励','levels','',null,'secondary')+'</div>');
+    modal('此刻怎么调查','<p>'+esc(g.title+'：'+g.text)+'</p><ol class="list-simple"><li>单击长出枝叶，再点“阅读文字”；双击或 Shift＋Enter 是快捷方式。已展开的普通分支一直留下。</li><li>单击操作节点，再点“执行操作”。实物可开合；关上不丢进度。</li><li>记录两件证物后可亲手连线。出现“暂定猜测”时，可做条件对照再判定解释；这是可选附查。</li></ol><p>横向拖动画布、触屏滑动，或用缩放按钮查看更远的枝叶。没有生产等待和解谜倒计时。经验只来自首次调查与结案，等级能力和附查不是主线门槛。</p><div class="button-row">'+button('带我体验','guided-start')+button('回到现场','start-investigation','',null,'secondary')+button('经验与升级奖励','levels','',null,'secondary')+'</div>');
   }
-  function evidenceContent(id, key) { const d = C.DATA[id].evidence[key]; return '<p class="evidence-read">' + esc(C.readEvidence(state,key)) + '</p>' + (B.level(state) >= 4 ? '<p class="deep-note">辨识 / ' + esc(d.deep) + '</p>' : '') + '<p class="progress-label">'+(id==='station'&&(Object.hasOwn(C.REASON_EVIDENCE,key)||Object.hasOwn(C.CHANGE_EVIDENCE,key))?'现场验证记录已保存；阅读与附查不额外奖励经验。':'已记入调查笔记。每件证物仅首次记录获得 8 经验；重复阅读不加经验。')+'</p>'+(B.level(state)>=3?button(state.investigator.bookmarks[id].includes(key)?'★ 已关注 · 点击取消':'☆ 关注这件证物','bookmark',key,null,'secondary'):''); }
+  function evidenceContent(id, key) { const d = C.DATA[id].evidence[key]; return '<p class="evidence-read">' + esc(C.readEvidence(state,key)) + '</p>' + (B.level(state) >= 4 ? '<p class="deep-note">辨识 / ' + esc(d.deep) + '</p>' : '') + '<p class="progress-label">'+(key.startsWith('inquiry-')||id==='station'&&(Object.hasOwn(C.REASON_EVIDENCE,key)||Object.hasOwn(C.CHANGE_EVIDENCE,key))?'现场验证记录已保存；阅读与附查不额外奖励经验。':'已记入调查笔记。每件证物仅首次记录获得 8 经验；重复阅读不加经验。')+'</p>'+(B.level(state)>=3?button(state.investigator.bookmarks[id].includes(key)?'★ 已关注 · 点击取消':'☆ 关注这件证物','bookmark',key,null,'secondary'):''); }
   function puzzleForm(id, c) {
     const select = (name, label, options) => '<div><label for="' + name + '">' + label + '</label><select id="' + name + '" name="' + name + '"><option value="">请选择</option>' + options.map(([v, t]) => '<option value="' + esc(v) + '">' + esc(t) + '</option>').join('') + '</select></div>';
     const owners = [['me', '我自己'], ['woman', '提伞女人'], ['citizens', '全体市民'], ['nobody', '无人']];
@@ -107,7 +117,7 @@
   }
   function walkthrough() {
     const id = state.casebook.active, c = state.casebook.cases[id], f = C.field(c);
-    if (!P.has(state, 'map')) return { title: '先观察眼前的证物', text: '双击招领须知，再双击旁边的镜子。单击只进入分支；阅读并记录后，新的地点会出现。', action: 'inspect', value: c.found.includes('notice') ? 'mirror' : 'notice' };
+    if (!P.has(state, 'map')) return { title: '先观察眼前的证物', text: '单击招领须知，再点“阅读文字”；记录后查看出现的镜子。双击也可快捷阅读。新地点随调查出现。', action: 'inspect', value: c.found.includes('notice') ? 'mirror' : 'notice' };
     if (c.solved) return { title: '体验完成', text: '你已经完成道具收集、设备修复、通路解锁与认领。可退出向导，进入下一案自由调查。' };
     if (id !== 'station') return { title: '现在由你来调查', text: '你已经学会移动、拿取、使用道具和记录证物。这一案不再高亮正确门或开关；先观察现场，必要时主动查看分级提示。' };
     if (c.room === 'bench' && !f.flags.includes('opened') && !f.items.includes('pin') && !f.items.includes('fuse')) return { title: '先选择一条进入路线', text: '取保险丝：修电后找钥匙，比较安全。取发夹：从镜后绕入，稳定度会损失 2 点，但能看到不同现场。两条路都能通关，也能稍后探索另一条。', action: 'choose-route' };
@@ -196,11 +206,11 @@
     modal('现场记录',entries.length?entries.map(r=>'<details class="map-record"><summary>'+esc((r.ok?'✓ ':'待核对 · ')+r.label)+'<small>'+esc(d.rooms[r.room].name)+'</small></summary><p class="evidence-read">'+esc(r.message)+'</p></details>').join(''):'<p>亲自操作现场后，发现和结果会保存在这里，刷新后仍可回看。</p>');
   }
   function showHypotheses(feedback=''){
-    if(!C.canHypothesize(state))return toast('先记录镜子与女人的证词。');
-    const q=C.field(state.casebook.cases.station).reasoning;
+    if(!C.canHypothesize(state))return toast('先记录本案现场证物，并接通对应设备。');
+    const info=C.inquiryInfo(state);
     const cards=C.hypothesisEntries(state).map(h=>'<article class="hypothesis-card"><h3>'+esc(h.label)+' <small>'+esc(h.status)+'</small></h3><p>'+esc(h.prediction)+'</p>'+(h.adopted?h.status==='待验证'?'<div class="button-row"><button class="mind-tool-button" data-do="hypothesis-judge" data-value="'+h.id+':confirm"'+(!h.ready?' disabled':'')+'>确认这个解释</button><button class="mind-tool-button" data-do="hypothesis-judge" data-value="'+h.id+':refute"'+(!h.ready?' disabled':'')+'>推翻这个解释</button></div>'+(!h.ready?'<small>先亲自完成静止与迈步两次对照。</small>':''):'<small>原猜测与验证结果都保留，不会因改判丢失记录。</small>':button('保留这个猜测','hypothesis-adopt',h.id,null,'secondary'))+'</article>').join('');
-    const observations=['still','step'].filter(k=>q.observations.includes(k)).map(k=>'<details class="map-record"><summary>'+esc(C.REASON_EVIDENCE[k+'-note'].name)+'</summary><p>'+esc(C.REASON_EVIDENCE[k+'-note'].read())+'</p></details>').join('');
-    modal('暂定猜测 · 镜面附查','<p>猜测可以并存，但不是结论。用现场的两种条件检验，再决定保留还是推翻；不扣资源、不影响结案。</p>'+(feedback?'<p class="hypothesis-feedback" role="status">'+esc(feedback)+'</p>':'')+cards+observations+button('返回现场继续验证','hypothesis-return','',null,'secondary'));
+    const observations=info.records.map(r=>'<details class="map-record"><summary>'+esc(r.name)+'</summary><p>'+esc(r.text)+'</p></details>').join('');
+    modal('暂定猜测 · '+info.name,'<p>猜测可以并存，但不是结论。'+esc(info.requirement)+' 不扣资源、不影响结案。结案后回访以档案重演继续，不改变处置。</p>'+(feedback?'<p class="hypothesis-feedback" role="status">'+esc(feedback)+'</p>':'')+cards.replaceAll('先亲自完成静止与迈步两次对照。',esc(info.requirement))+observations+button('返回现场继续验证','hypothesis-return','',null,'secondary'));
   }
   function focusedMap() {
     const id=state.casebook.active,c=state.casebook.cases[id],d=C.DATA[id],f=mapFocus,available=M.actions(state),names={reasoning:'镜面附查',experiment:'现场验证',truth:'寄存人核验',ability:'能力与支路'};
@@ -226,7 +236,8 @@
     return {nodes,edges,width:820,height};
   }
   function enterMapNode(action,value,label) {
-    if(owner)claim();
+    const modifies=['object-toggle','tree-expand','map-room','map-execute','case'].includes(action)||owner&&boardMode==='site'&&['inspect','map-read','map-action','map-result'].includes(action);
+    if(modifies&&!changes.active())return change(()=>enterMapNode(action,value,label));
     if(action==='map-solve')return readMapNode(action,value,label);
     if(action==='tree-read')return readMapNode(action,value,label);
     if(action==='object-toggle'){
@@ -270,9 +281,10 @@
       clearCaseView();render(true);revealCurrentRoom();save();return;
     }
     if(boardMode==='site'&&owner&&['inspect','map-read','map-action','map-result'].includes(action))M.grow(state,(action==='inspect'||action==='map-read'?'evidence:':'action:')+value);
-    mapFocus={action,value,label,caseId:state.casebook.active,era:state.era};renderAnchored((action==='inspect'||action==='map-read'?'evidence:':'action:')+value);FX.enter(document.querySelector('.mind-board'));if(owner)save();
+    mapFocus={action,value,label,caseId:state.casebook.active,era:state.era};renderAnchored((action==='inspect'||action==='map-read'?'evidence:':'action:')+value);FX.enter(document.querySelector('.mind-board'));if(modifies)save();
   }
   function readMapNode(action,value,label) {
+    if(['inspect','map-read'].includes(action)&&owner&&!changes.active())return change(()=>readMapNode(action,value,label));
     const id=state.casebook.active,c=state.casebook.cases[id],d=C.DATA[id];
     if(action==='object-toggle'){
       const o=M.objects(state).find(o=>'object:'+o.id===value);if(!o)return;
@@ -290,7 +302,7 @@
       return modal(d.rooms[value].name,'<p class="evidence-read">'+esc(P.has(state,'map')?M.describe(copy):'雨后的大厅没有人声。墙上钉着招领须知，镜子映着空椅子。')+'</p>');
     }
     if(['inspect','map-read'].includes(action)){
-      if(!c.found.includes(value)){if(!owner)return toast('请先接管本页值班。');const r=C.act(state,'inspect',value);if(!r.ok)return toast(r.message);render();save();}
+      if(!c.found.includes(value)){if(!owner)return toast('请先接管本页值班。');const r=C.act(state,'inspect',value);if(!r.ok)return toast(r.message);}
       if(c.found.includes(value)){if(owner){C.act(state,'read-evidence',value);render();save();}modal(C.evidenceTitle(state,value),evidenceContent(id,value));}
       return;
     }
@@ -427,17 +439,20 @@
     });
   }
   document.addEventListener('click', event => {
-    if(owner)claim();
+    handleClick(event);
+  });
+  function handleClick(event) {
     if(event.isTrusted)audio.unlock();
-    const point = { x: event.clientX, y: event.clientY, time: event.timeStamp, keyboard: event.detail === 0, caseId: state.casebook.active, era: state.era };
-    if (tab === 'case' && !$('modal').open && M.secondClick(lastNodeGesture, point)) {
+    const clickedNode=event.target.closest('.mind-node');
+    const point = { x: event.clientX, y: event.clientY, time: event.timeStamp, keyboard: event.detail === 0, nativeDouble:event.detail>1,action:clickedNode?.dataset.do,value:clickedNode?.dataset.value, caseId: state.casebook.active, era: state.era };
+    if (clickedNode && tab === 'case' && !$('modal').open && M.secondClick(lastNodeGesture, point)) {
       const first = lastNodeGesture; lastNodeGesture = null; cancelNodeEntry();
       event.preventDefault(); readMapNode(first.action, first.value, first.label); return;
     }
     const el = event.target.closest('button, .brand'); if (!el) return;
     if (!el.matches('.mind-node')) { cancelNodeEntry(); lastNodeGesture = null; }
     if (el.matches('.brand')) { event.preventDefault(); tab = 'case'; render(true); return; }
-    if (el.dataset.tab) { if (!P.has(state, el.dataset.tab)) return; tab = el.dataset.tab; if (tab === 'notebook') { state.ui.notebookOpened = true; save(); } render(true); return; }
+    if (el.dataset.tab) { if (!P.has(state, el.dataset.tab)) return; tab = el.dataset.tab; if (tab === 'notebook'&&owner)change(()=>{state.ui.notebookOpened=true;save();});render(true);return; }
     const action = el.dataset.do, value = el.dataset.value; if (!action) return;
     if(el.matches('.mind-node')){
       cancelNodeEntry();FX.play(el,state.casebook.active,action,value);
@@ -446,13 +461,16 @@
       if (!point.keyboard && M.deferEntry(action)) {
         el.dataset.originalHint = el.querySelector('small').textContent;
         el.classList.add('is-confirming'); el.querySelector('small').textContent = '已选中 · 双击阅读说明';
-        nodeClickTimer = setTimeout(() => { lastNodeGesture = null; enterMapNode(action,value,label); }, M.DOUBLE_CLICK_MS);
+        nodeClickTimer = setTimeout(() => { lastNodeGesture = null;if(point.caseId===state.casebook.active&&point.era===state.era)enterMapNode(action,value,label); }, M.DOUBLE_CLICK_MS);
       } else enterMapNode(action,value,label);
       return;
     }
     cancelNodeEntry(); lastNodeGesture = null;
+    const mutations=['bookmark','hypothesis-adopt','hypothesis-judge','map-link-start','map-link-confirm','map-room','map-action','walkthrough','guided-start','start-investigation','confirm-import','reset','new-confirm','case','room','inspect','hint','interact','pause'];
+    if(mutations.includes(action)&&!changes.active())return change(()=>handleClick(event));
     if (action === 'close-modal') return $('modal').close();
     if(action==='map-zoom'){
+      if(owner&&!changes.active())return change(()=>handleClick(event));
       const viewport=document.querySelector('.mind-viewport'),z=state.ui.mapZoom||1;
       state.ui.mapZoom=value==='fit'?Math.max(.3,Math.min(1,viewport.clientWidth/1040)):value==='reset'?1:Math.max(.3,Math.min(1.25,z+(value==='in'?.1:-.1)));
       render(true);if(owner)save();return;
@@ -465,7 +483,7 @@
     if(action==='audio-settings')return showAudio();
     if(action==='audio-music'||action==='audio-effects'){const key=action==='audio-music'?'music':'effects';audio.configure({[key]:!audio.status()[key]});showAudio();return;}
     if(action==='audio-start'){audio.unlock();return;}
-    if (action === 'map-view') { if (!['site', 'notes'].includes(value) || value === 'notes' && !P.has(state, 'notebook')) return; clearTimeout(nodeClickTimer);mapFocus=null;linkDraft=null;linkFeedback='';boardMode=value;if(value==='notes'){state.ui.notebookOpened=true;save();}render(true);return; }
+    if (action === 'map-view') { if (!['site', 'notes'].includes(value) || value === 'notes' && !P.has(state, 'notebook')) return; clearTimeout(nodeClickTimer);mapFocus=null;linkDraft=null;linkFeedback='';boardMode=value;if(value==='notes'&&owner)change(()=>{state.ui.notebookOpened=true;save();});render(true);return; }
     if(action==='map-back'){mapFocus=null;render(true);return;}
     if(action==='map-focus-read'){if(mapFocus)readMapNode(mapFocus.action,mapFocus.value,mapFocus.label);return;}
     if(action==='map-confirm'){if(mapFocus?.action==='map-action'&&mapFocus.value===value)enterMapNode('map-execute',value,mapFocus.label);return;}
@@ -511,7 +529,7 @@
     }
     if (action === 'help') return showHelp();
     if (action === 'help-question') return showHelpAnswer(value);
-    if (action === 'goto') { if (!P.has(state, value)) return toast('先继续当前调查，这项功能会稍后出现。'); $('modal').close(); tab = value; if (tab === 'notebook') { state.ui.notebookOpened = true; save(); } render(true); return; }
+    if (action === 'goto') { if (!P.has(state, value)) return toast('先继续当前调查，这项功能会稍后出现。'); $('modal').close(); tab = value; if (tab === 'notebook'&&owner)change(()=>{state.ui.notebookOpened=true;save();});render(true);return; }
     if (action === 'guide') return showGuide();
     if(action==='walkthrough-step'){const g=walkthrough();return modal(g.title,'<p>'+esc(g.text)+'</p>'+button('回到导图继续','close-modal','',null,'secondary'));}
     if (action === 'walkthrough') { state.ui.walkthrough = !state.ui.walkthrough; render(true); save(); return; }
@@ -519,13 +537,13 @@
     if (action === 'start-investigation') { state.ui.introduced = true; introOpen = false; $('modal').close(); tab = 'case'; render(true); save(); return; }
     if (action === 'settings') return settings();
     if (action === 'levels') return modal('调查员资历','<p>当前 Lv.'+B.level(state)+' · 累计 '+state.career.xp+' 经验 · 现实稳定 '+Math.round(state.stability)+'%。等级奖励服务于调查，不再增加产量或员工席位。</p><details class="xp-details"><summary>经验怎么获取？</summary><dl class="xp-sources"><dt>首次记录普通证物</dt><dd>+8</dd><dt>完成道具或机关步骤</dt><dd>+12</dd><dt>寄存人核验 / 装订</dt><dd>各 +12 / +60</dd><dt>侧室收容 / 壁龛奖励</dt><dd>+40 / +20</dd><dt>第一 / 二 / 三案结案</dt><dd>+65 / +95 / +135</dd></dl><p>上述首次奖励每轮只结算一次。三段机关全部正确才算一个步骤。重复阅读、行走、实物开合、感知、比对、连线、附查实验和在线等待不加经验。轮回保留累计经验；主线无需刷等级。</p></details>'+C.REWARDS.map((r,i)=>'<div class="level-row '+(B.level(state)<i+1?'locked':'')+'"><span>Lv.'+(i+1)+'</span><div>'+esc(r)+'<br><small class="progress-label">累计 '+B.LEVELS[i]+' 经验</small></div></div>').join(''));
-    if (action === 'export') { state.lastSaved = Date.now(); exportData(); return toast('存档已导出，请保存下载的 JSON 文件。'); }
+    if (action === 'export') { exportData(); return toast('存档已导出，请保存下载的 JSON 文件。'); }
     if(action==='export-unreadable'){const copies=recoveryCopies();if(!copies.length)return toast('没有异常原文。');copies.forEach((v,i)=>downloadText(v.raw,'失物管理局-异常原文-'+v.source+'-'+i+'-'+Date.now()+'.json'));return toast('异常原文已导出；请保留文件，当前进度未改变。');}
     if (action === 'import') { $('import-file').value = ''; $('import-file').click(); return; }
-    if (action === 'takeover') { if(!claim(true))return toast('暂时不能接管。');const loaded=store.read();if(loaded.state)state=loaded.state;unreadableCopies=loaded.unreadable;clearCaseView();lastTick = Date.now();$('storage-warning').hidden = true;if(loaded.unavailable)warn('浏览器不允许存档，请及时导出当前进度。');$('modal').close();render(true);save();return toast('本页开始值班。'); }
+    if (action === 'takeover') { if(!claim(true))return toast('暂时不能接管。');const loaded=store.read();if(loaded.state)state=loaded.state;unreadableCopies=loaded.unreadable;clearCaseView();lastTick = Date.now();$('storage-warning').hidden = true;if(loaded.unavailable)warn('浏览器不允许存档，请及时导出当前进度。');$('modal').close();render(true);const persisted=save();return toast(persisted?'本页开始值班。':'本页已接管，但未能保存，请立即导出。'); }
     if (!owner) return toast('另一个页面正在值班，请在设置中接管。');
     if (action === 'restore-backup') { try { pendingImport = deserialize(localStorage.getItem(BACKUP)); modal('恢复上次备份？', '<p>将覆盖当前进度。当前存档会先自动导出。</p>' + button('确认恢复', 'confirm-import', '', null, 'gold')); } catch { toast('没有可读取的自动备份。'); } return; }
-    if (action === 'confirm-import') { if (!pendingImport) return; exportData(); state = pendingImport;clearCaseView();tab='case';state.lastSaved = Date.now(); lastTick = Date.now(); $('modal').close(); save(); render(true);revealCurrentRoom();return toast('存档已载入。'); }
+    if (action === 'confirm-import') { if (!pendingImport) return; exportData(); state = pendingImport;clearCaseView();tab='case';lastTick = Date.now(); $('modal').close(); const persisted=save();render(true);revealCurrentRoom();return toast(persisted?'存档已载入并保存。':'存档已载入，但未能保存，请立即导出。'); }
     if (action === 'reset-dialog') return resetDialog();
     if (action === 'reset') { const next = C.resetInvestigation(state); if (!next) return toast('先完成第三案，才能开启下一轮。'); exportData(); state = next;clearCaseView();lastTick = Date.now(); tab = 'case'; $('modal').close(); save(); render(true);revealCurrentRoom();return toast('旧卷已封存。你的调查资历与见闻仍在。'); }
     if (action === 'new-dialog') return modal('重新开始所有进度？', '<p>这会清空等级、回声与传承，并新建第 1 轮。当前存档会先导出；请保留下载文件。</p>' + button('确认清空并新建', 'new-confirm', '', null, 'danger'));
@@ -537,33 +555,39 @@
     if (result.ok && ['search', 'craft', 'build'].includes(action)) state.ui.operationsStarted = true; if (result.message) toast(result.message);
     if (result.ok && action === 'case') { clearCaseView();tab='case';$('modal').close(); }
     render(); save();if(result.ok&&action==='case')revealCurrentRoom();if (action === 'hint' && tab === 'case') showMapHint();
-  });
+  }
   document.addEventListener('dblclick',event=>{if(event.target.closest('.mind-board'))event.preventDefault();});
   document.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.shiftKey&&event.target.matches('.mind-node')){event.preventDefault();cancelNodeEntry();lastNodeGesture=null;const el=event.target;readMapNode(el.dataset.do,el.dataset.value,el.querySelector('span').textContent);}});
   document.addEventListener('input', event => { if(event.target.id==='audio-volume'){audio.configure({volume:Number(event.target.value)/100});$('audio-volume-label').textContent=event.target.value+'%';} if (event.target.id === 'help-query') { helpResults(event.target.value); $('help-answer').innerHTML = ''; } if(event.target.id==='link-method'&&linkDraft&&Object.hasOwn(C.METHODS,event.target.value))linkDraft.method=event.target.value; });
-  document.addEventListener('input',event=>{if(event.target.id==='field-notes'&&owner&&claim()&&C.note(state,event.target.value))$('note-save-state').textContent=save()?'札记已保存':'未能保存，请导出存档';});
+  document.addEventListener('input',event=>{if(event.target.id==='field-notes')change(()=>{if(C.note(state,event.target.value)){save();$('note-save-state').textContent='札记已更新';}});});
   let canvasDrag=null;
   document.addEventListener('pointerdown',event=>{const v=event.target.closest('.mind-viewport');if(!v||event.pointerType!=='mouse'||event.button!==0||event.target.closest('button'))return;canvasDrag={v,x:event.clientX,y:event.clientY,left:v.scrollLeft,top:v.scrollTop};v.setPointerCapture(event.pointerId);v.classList.add('is-dragging');});
   document.addEventListener('pointermove',event=>{if(!canvasDrag)return;const d=canvasDrag;d.v.scrollLeft=d.left+d.x-event.clientX;d.v.scrollTop=d.top+d.y-event.clientY;});
   function endCanvasDrag(){if(canvasDrag)canvasDrag.v.classList.remove('is-dragging');canvasDrag=null;}
   document.addEventListener('pointerup',endCanvasDrag);document.addEventListener('pointercancel',endCanvasDrag);
   document.addEventListener('submit', event => {
-    if (event.target.id !== 'puzzle-form') return; event.preventDefault(); if (!owner||!claim()) return toast('请先在存档中接管并载入最新进度。');
+    if(event.target.id!=='puzzle-form')return;event.preventDefault();change(()=>submitPuzzle(event));
+  });
+  function submitPuzzle(event) {
     const data = new FormData(event.target), id = state.casebook.active;
     const payload = { code: data.get('code'), owner: data.get('owner'), order: [1, 2, 3, ...(id === 'city' ? [4] : [])].map(n => data.get('order' + n)), resolution: data.get('resolution') };
     if (id !== 'station' && (payload.order.some(v => !v) || !payload.resolution) || id !== 'tuesday' && !payload.owner) return toast('请先填完登记内容与处置方式。');
     const result = C.act(state, 'solve', payload); render(); save();
     if(result.ok){mapFocus=null;render(true);const ending=window.BureauRelease.chapter(state,id),next=C.ORDER[C.ORDER.indexOf(id)+1];modal(ending.title,'<p class="evidence-read">'+esc(ending.text)+'</p>'+(next?button('进入下一案','case',next):button('查看结局档案','goto','legacy'))+button('回访当前现场','close-modal','',null,'secondary'));}
     else { let feedback = $('puzzle-feedback'); if (!feedback) { feedback = document.createElement('p'); feedback.id = 'puzzle-feedback'; feedback.setAttribute('role', 'alert'); event.target.append(feedback); } feedback.textContent = result.message; }
-  });
+  }
   $('import-file').addEventListener('change', async event => {
     const file = event.target.files[0]; if (!file) return;
-    if (file.size > 2 * 1024 * 1024) return toast('存档文件过大，最大 2 MB。');
+    if (file.size > 2 * 1024 * 1024) {event.target.value='';return toast('存档文件过大，最大 2 MB。');}
     try { pendingImport = deserialize(await file.text()); modal('导入这份存档？', '<p>第 ' + pendingImport.era + ' 轮 · 调查员 Lv.' + B.level(pendingImport) + ' · 已结案 ' + C.ORDER.filter(k => pendingImport.casebook.cases[k].solved).length + '/3。</p><p>将覆盖当前进度，当前存档会先导出为文件。</p>' + button('确认导入', 'confirm-import', '', null, 'gold')); }
     catch (error) { pendingImport = null; toast('存档无法读取：' + error.message); }
+    finally { event.target.value=''; }
   });
   document.addEventListener('keydown', event => { if (event.key === 'Escape') { cancelNodeEntry(); lastNodeGesture = null; $('modal').close(); } });
-  $('modal').addEventListener('close', () => { if (introOpen) { state.ui.introduced = true; introOpen = false; save(); } });
+  $('modal').addEventListener('close', () => {
+    if (introOpen) { introOpen=false;if(owner)change(()=>{state.ui.introduced=true;save();}); }
+    if(!$('modal').open){const t=modalReturnFocus;const e=t?.id&&$(t.id)||[...document.querySelectorAll('[data-do]')].find(e=>t?.action&&e.dataset.do===t.action&&e.dataset.value===t.value);(e||$('main')).focus({preventScroll:true});modalReturnFocus=null;}
+  });
   window.addEventListener('pagehide', () => { save();store.release(); });
   window.addEventListener('pageshow', event => { if(event.persisted){clearCaseView();lastTick=Date.now();load();render(true);} });
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });

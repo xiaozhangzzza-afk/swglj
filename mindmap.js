@@ -1,5 +1,5 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./investigator.js'), require('./progression.js'));
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./inquiries.js'), require('./progression.js'));
   else root.InvestigationMap = factory(root.Cases, root.Progression);
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (C, P) {
   'use strict';
@@ -8,6 +8,7 @@
   // not DOM identity, so navigation can be immediate without losing reading.
   function secondClick(previous, current) {
     return !!previous && !current.keyboard && current.time >= previous.time && current.time - previous.time <= DOUBLE_CLICK_MS &&
+      (!previous.action||!current.action||previous.action===current.action&&previous.value===current.value||current.nativeDouble===true) &&
       previous.caseId === current.caseId && previous.era === current.era &&
       Math.hypot(current.x - previous.x, current.y - previous.y) <= 10;
   }
@@ -49,6 +50,7 @@
   function primary(a) { return !['experiment','reasoning','ability'].includes(a.group) && !a.id.startsWith('truth-') && !['sense', 'read', 'compare', 'legacy-pocket', 'niche-open'].includes(a.id); }
   function sceneState(s) {
     const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c),has=k=>f.flags.includes(k);
+    if(C.INQUIRIES[id]&&c.room==='workshop'&&!c.solved&&C.inquiryState(s).observations.includes('change')&&!C.inquiryState(s).replied)return id==='tuesday'?'磁带已暂停，走廊仍回应同一句问候。':'光路已被挡住，模型中的人影仍然回应。';
     if(id==='station'){
       const q=f.reasoning;
       if(c.room==='workshop'&&!objectOpen(s,OBJECTS.find(o=>o.id==='fuse-box')))return has('powered')?'箱盖已合上，照明仍然接通。':'配电箱的铁盖合着，边缘留着湿手印。';
@@ -82,7 +84,7 @@
       if(c.room==='hall'&&has('rewound'))return '楼梯倒着伸展，走廊仍停在星期二。';
       if(c.room==='bench'&&f.items.includes('battery'))return '电池已经取出，磁带仍留在桌上。';
       if(c.room==='records'&&has('rewound'))return '倒带键已压下，远处传来逆行的脚步。';
-      if(c.room==='counter'&&c.solved)return '等待已经结束，这一天重新接回日历。';
+      if(c.room==='counter'&&c.solved)return c.resolution==='seal'?'日历恢复向前，未寄出的信留在封存柜。':'日历恢复向前，回信已经离开走廊。';
     }
     if(id==='city'){
       if(c.room==='hall'&&has('aligned'))return '模型已经校准，地下街的入口显现了。';
@@ -244,9 +246,13 @@
     const root='room:'+c.room,nodes=[{id:root,label:d.rooms[c.room].name,type:'root',action:'map-room',value:c.room,active:true,x:82,y:100,depth:0,scope:'main',hint:'你在这里',sceneState:sceneState(s),sceneMark:trace}],edges=[];
     let row=100;
     for(const g of catalog(s)){
-      const parent='branch:'+g.token,isOpen=g.object?objectOpen(s,g.object):g.token==='changes'||expanded.includes(g.token),label=g.object?(isOpen?(g.object.off||'关上'):(g.object.on||'打开'))+g.object.name:BRANCH_NAMES[g.token];
-      const completed=g.children.filter(n=>n.done&&n.hint!=='待验证').length,done=g.children.length>0&&completed===g.children.length;
+      const parent='branch:'+g.token,isOpen=g.object?objectOpen(s,g.object):g.token==='changes'||expanded.includes(g.token),label=g.object?(isOpen?(g.object.off||'关上'):(g.object.on||'打开'))+g.object.name:g.token==='reasoning'?C.inquiryInfo(s).name:BRANCH_NAMES[g.token];
+      const completed=g.children.filter(n=>n.done&&n.hint!=='待验证').length,done=g.children.length>0&&completed===g.children.length&&!(g.token==='reasoning'&&C.INQUIRIES[id]&&!C.inquiryState(s).replied);
       nodes.push({id:parent,label,type:g.object?'object':'branch',action:g.object?'object-toggle':'tree-expand',value:g.token,x:285,y:row,depth:1,scope:g.scope,expanded:isOpen,done:g.object?false:done,hint:g.object?(g.object.id==='desk-lamp'?(isOpen?'灯已亮':'灯已灭'):(isOpen?'已打开':'已合上'))+' · '+(isOpen?'内部 '+completed+'/'+g.children.length+' 已查':'内部枝叶隐藏'):g.token==='changes'?'操作留下的变化':g.token==='travel'?'选择目的地':`${completed}/${g.children.length} ${g.token==='evidence'?'已记录':'已完成'} · ${isOpen?'已展开':'展开'}`});
+      if(g.token==='reasoning'&&C.INQUIRIES[id]){
+        const q=C.inquiryState(s),d=C.INQUIRIES[id],phase=q.replied&&q.checked.some(k=>!q.archiveChecked.includes(k))?'新判定待归档':q.replied?q.archiveChecked.some(k=>d.hypotheses[k].verdict==='confirm')?'核验已归档':'阶段结论已归档 · 可继续':q.checked.length?'判定已记录 · 待归档':q.observations.includes('change')?'观察完成 · 待判定':q.observations.length?'待改变条件':'待观察';
+        nodes[nodes.length-1].hint=phase+' · '+(isOpen?'已展开':'展开');
+      }
       edges.push({from:root,to:parent,active:g.scope==='main',scope:g.scope});
       if(isOpen)for(const n of g.children){
         nodes.push({...n,x:500,y:row,depth:2,scope:g.scope,expanded:n.type!=='room'?expanded.includes(n.id):undefined});
@@ -274,7 +280,7 @@
   }
   function journey(s){
     const id=s.casebook.active,c=s.casebook.cases[id],f=C.field(c),has=k=>f.flags.includes(k);
-    const labels=id==='station'?['发现异常','打开通路','补齐信息','完成认领']:id==='tuesday'?['发现异常','恢复设备','找回归途','结束等待']:['发现异常','启动投影','校准城市','完成归还'];
+    const labels=id==='station'?['发现异常','打开通路','补齐信息','完成认领']:id==='tuesday'?['发现异常','恢复设备','找回归途','结束等待']:['发现异常','启动投影','校准城市','决定城市去向'];
     let index;
     if(c.solved)index=4;
     else if(id==='station')index=has('ticket-lit')&&has('erasure')?3:has('opened')?2:c.found.length>=2||f.items.length?1:0;

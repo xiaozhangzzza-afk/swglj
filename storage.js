@@ -4,6 +4,20 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const LEASE_MS=12000;
+  function mutationGate({check,commit,denied,failed}){
+    let active=false,pending=false;
+    function run(operation){
+      if(active)return operation();
+      if(!check()){denied();return;}
+      active=true;pending=false;
+      try{return operation();}finally{
+        active=false;
+        if(pending&&!commit())failed();
+        pending=false;
+      }
+    }
+    return {run,active:()=>active,requestSave:()=>{if(!active)return false;pending=true;return true;}};
+  }
   function tabSession({storage,key,navigationType,random}){
     let session;
     try{if(navigationType==='reload')session=storage.getItem(key);}catch{}
@@ -28,7 +42,9 @@
         if(!force&&changed())return {ok:false,foreign:true,stale:true};
         const time=now(),lock=activeLease(storage.getItem(lease),time);
         if(!force&&lock&&lock.session!==session)return {ok:false,foreign:true};
-        storage.setItem(lease,JSON.stringify({session,time}));return {ok:true};
+        // Still check main text and foreign lease on every entry, but renew our
+        // own 12-second lease only when needed, not on every harmless UI click.
+        if(force||!lock||lock.session!==session||time-lock.time>=4000)storage.setItem(lease,JSON.stringify({session,time}));return {ok:true};
       }catch{return {ok:true,unavailable:true};}
     }
     function write(state){
@@ -36,7 +52,13 @@
       if(ownership.unavailable)return {ok:false,unavailable:true};
       try{
         const old=storage.getItem(key);
-        if(old&&content(old)!==content(JSON.stringify(state))){try{decode(old);storage.setItem(backup,old);}catch{/* Keep the last valid backup. */}}
+        if(old&&content(old)!==content(JSON.stringify(state))){
+          let valid=false;try{decode(old);valid=true;}catch{/* Keep the last valid backup for a corrupt main save. */}
+          if(valid){try{storage.setItem(backup,old);}catch{
+            // Do not replace recoverable progress when its backup cannot be written.
+            return {ok:false,unavailable:true,backupUnavailable:true};
+          }}
+        }
         const time=now(),raw=JSON.stringify({...state,lastSaved:time});
         storage.setItem(key,raw);state.lastSaved=time;observed=raw;observedSet=true;return {ok:true};
       }catch{return {ok:false,unavailable:true};}
@@ -63,5 +85,5 @@
     function release(){try{const lock=JSON.parse(storage.getItem(lease)||'null');if(lock?.session===session)storage.removeItem(lease);}catch{}}
     return {claim,write,read,recoveryCopies,release};
   }
-  return {create,activeLease,tabSession,LEASE_MS};
+  return {create,activeLease,tabSession,LEASE_MS,mutationGate};
 });

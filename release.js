@@ -3,7 +3,7 @@
   else root.BureauRelease=factory();
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const VERSION='1.0.0';
+  const VERSION='1.0.2';
   function chapter(s,id){
     const c=s.casebook.cases[id];if(!c?.solved)return null;
     if(id==='station')return {title:'你领回了自己',text:'镜子第一次映出了你的脸。女人收起伞，把一封写着“星期二”的信留在椅上。下一份案卷已经出现；大厅里尚未查清的异常仍可回访。'};

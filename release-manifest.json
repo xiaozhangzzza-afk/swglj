@@ -1,9 +1,9 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.2",
   "files": {
     "index.html": {
-      "bytes": 5399,
-      "sha256": "90334e3d62d18e81b63b786f033af46150a4a06ec6faa26f24cc33ed30e002f0"
+      "bytes": 5447,
+      "sha256": "ee696e04b1c11dabde1a3318a7e965e0962885f412c540dc1300ffdd02881217"
     },
     "style.css": {
       "bytes": 25594,
@@ -18,16 +18,16 @@
       "sha256": "9ea075f2fb3d400ff1b23372618f4b9c55859090737ccd0d4ae705321ef7eba3"
     },
     "app.js": {
-      "bytes": 79888,
-      "sha256": "c4c0ce7c0e4538f8ed88fe609f9a0caa45c3dc085a37306c430c34a55e510eb3"
+      "bytes": 82850,
+      "sha256": "24a471efd70c1d0848a03fdcea4f95d1bdc24c1b6c6369079feb06cea40f7d1c"
     },
     "audio.js": {
       "bytes": 6546,
       "sha256": "6f2db2ea1733557979f45c897335492922002fdf1eceaba8afd13864086adbef"
     },
     "storage.js": {
-      "bytes": 3429,
-      "sha256": "b7e3e90881c4a6191da04b88e721412b7110fb153ab29471c89b78b91369135a"
+      "bytes": 4411,
+      "sha256": "dfcf2192513ed611391cfe60bf8ca2d031669ff4ae77df40491b55e6fc987eaa"
     },
     "diagram-edges.js": {
       "bytes": 960,
@@ -66,12 +66,12 @@
       "sha256": "4b8730bdffbb2ce530df1f6b9cec8ae2edc137c591e5881557fbc275aa034734"
     },
     "help.js": {
-      "bytes": 11795,
-      "sha256": "2dd5152b069a2a99edc6a28d4c43c3a5d264a2b691f831389043f57f5c59d0a6"
+      "bytes": 12461,
+      "sha256": "6753816f302859c6f5caee461b4c60011047b42eca518b736ec47640d26aaf4d"
     },
     "mindmap.js": {
-      "bytes": 26344,
-      "sha256": "62bd9b3e6fcb28598db5b0025916b6e91fe27ecf312b00d0e2321525438364e7"
+      "bytes": 27512,
+      "sha256": "ec70dfe758b9708c2e469e74b3c7326ea7ee592c69217e89d4af19f2dcc7c8e0"
     },
     "node-effects.js": {
       "bytes": 2400,
@@ -79,7 +79,11 @@
     },
     "release.js": {
       "bytes": 1933,
-      "sha256": "7ab0661fed1016be8944e8319abb3c1ee64c9648875b0630f8b1b3625c10ed51"
+      "sha256": "e56e39cd8bffed099f6fa34d5122b8eb50687435415fd0decca0111501bff26a"
+    },
+    "inquiries.js": {
+      "bytes": 16790,
+      "sha256": "93e48bce8661105890464773fa166ecd2c8cb6e957fe94ac96e1c14abfd5134a"
     },
     "assets/lost-property-office-horror.png": {
       "bytes": 2604659,
